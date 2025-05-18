@@ -1,0 +1,6 @@
+#py_cpuinfo
+msgpack
+psutil
+distro
+msgpack-python
+nuitka
