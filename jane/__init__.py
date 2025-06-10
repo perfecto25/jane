@@ -3,13 +3,15 @@ import platform
 import psutil
 import msgpack
 import socket
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+import distro
 
-
-
+from .cpu import get_cpu_info
+from .disk import get_disk_usage
 
 def get_system_info():
     """ memory and swap information """
-
     swap = psutil.swap_memory()
 
     try:

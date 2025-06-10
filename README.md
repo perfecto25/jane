@@ -3,6 +3,6 @@
 
 ## Binary build
 
-    dnf install patchelf
+    dnf install patchelf python3-devel
 
-    python -m nuitka --standalone main.py
+    python3 -m nuitka --standalone main.py

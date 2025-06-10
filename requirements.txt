@@ -5,3 +5,4 @@ distro
 msgpack-python
 nuitka
 loguru
+py-cpuinfo

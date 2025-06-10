@@ -1,5 +1,6 @@
-main.dist
-main.build
+*.bin 
+*.build
+*.dist
 venv
 **/__pychache__
 *.msgpack
