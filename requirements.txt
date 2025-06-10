@@ -4,3 +4,4 @@ psutil
 distro
 msgpack-python
 nuitka
+loguru
