@@ -43,7 +43,8 @@ def get_system_info():
             "hostname": socket.gethostname(),
             "os": f"{platform.system()}, {platform.release()}, {platform.freedesktop_os_release().get('PRETTY_NAME', 'Uknown Linux Distribution')}",
             "memory": f"{psutil.virtual_memory().total / (1024**3):.2f} GB",
-            "cpu": f"{cpu['count']} , {cpu['brand']}",
+            "cpu": cpu,
+           # "cpu": f"{cpu['count']} , {cpu['brand']}",
             "mounts": len(mounts)
         },
         "timestamp": datetime.now().isoformat(),

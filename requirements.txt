@@ -6,3 +6,4 @@ msgpack-python
 nuitka
 loguru
 py-cpuinfo
+rio-config

@@ -2,5 +2,6 @@
 *.build
 *.dist
 venv
+.venv
 **/__pychache__
 *.msgpack

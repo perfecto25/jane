@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!venv/bin/python
 
 import platform
 import psutil
