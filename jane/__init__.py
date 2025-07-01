@@ -6,6 +6,8 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import distro
+from rich.console import Console
+from rich.table import Table
 
 from .cpu import get_cpu_info
 from .disk import get_disk_usage
@@ -74,3 +76,18 @@ def create_msgpack_payload(system_data):
     except Exception as e:
         print(f"Error creating MessagePack payload: {e}")
         return None
+
+def gen_status_table():
+    """ output a status table of system """
+    console = Console()
+    table = Table(title="status")
+
+    table.add_column("check", style="cyan", no_wrap=True)
+    table.add_column("status", style="magenta")
+    table.add_column("output", style="green")
+    
+    table.add_row("Alice", "30", "New York")
+    table.add_row("Bob", "24", "London")
+    table.add_row("Charlie", "35", "Paris")
+
+    console.print(table)

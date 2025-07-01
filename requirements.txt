@@ -7,3 +7,4 @@ nuitka
 loguru
 py-cpuinfo
 rio-config
+rich

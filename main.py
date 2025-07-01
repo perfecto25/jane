@@ -10,8 +10,13 @@ import sys
 from loguru import logger
 import argparse
 import textwrap
+from rio_config import Rio
 
-from jane import get_system_info, create_msgpack_payload
+from jane import get_system_info, create_msgpack_payload, gen_status_table
+
+rio = Rio()
+result = rio.parse_file("config.rio")
+
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -26,12 +31,20 @@ parser.add_argument("-d", "--daemon", action="store_true", help="start Jane as d
 parser.add_argument("-c", "--config", help="path to config file")
 
 
-def main():
+def start():
+
+
     args = parser.parse_args()
     if args.status:
         logger.debug("getting Jane status")
+        
         system_info = get_system_info()
-        print(json.dumps(system_info))
+
+        # generate status table
+       # gen_status_table()
+        print(json.dumps(result))
+
+#        print(json.dumps(system_info))
         sys.exit()
 
 
@@ -54,7 +67,8 @@ def main():
 
 
 if __name__ == "__main__":
+
     try:
-        main()
+        start()
     except Exception as e:
         print(f"Error: {e}")
