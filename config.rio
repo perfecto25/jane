@@ -1,16 +1,17 @@
-check.cpu.loadavg:
- 1min = 0.23
- 5min = 0.5
- 15 min = 1.0
+check.cpu.load_avg:
+  1min = 0.23
+  5min = 0.5
+  15min = 1.0
 
 check.memory.usage:
- gb = 200
- pct = 30
+  gb = 200
+  pct = 30
 
-check.diskspace.home.usage:
- path = /home
- pct = 80
+check.mount.home:
+  path = /home
+  pct = 80
 
 check.process.kdb:
- name = kdb
- pattern = /home/user/kdb.q -r 
+  name = kdb
+  pattern = /home/user/kdb.q -r 
+
