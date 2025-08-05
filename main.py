@@ -13,9 +13,7 @@ import argparse
 import textwrap
 from rio_config import Rio
 
-from jane import get_snapshot, compare_status, create_msgpack_payload, gen_status_table, show_info
-
-
+from jane import get_snapshot, compare_status, create_msgpack_payload, gen_status_table, Payload
 
 
 parser = argparse.ArgumentParser(
@@ -41,22 +39,14 @@ parser.add_argument("-v", "--verbose", help="verbose output")
 
 def start():
     args = parser.parse_args()
-
+    args_dict = vars(args)
     # parse jane config.rio file
     cfg_file = args.config or "/etc/jane/config.rio"
-    
-       
+
+    payload = Payload(cfg_file, args_dict)
+
     if args.info:
-        logger.debug(args.output)
-        # system_info = get_system_info()
-        # if args.output == "json":
-        #     print(json.dumps(system_info))
-        #     sys.exit()
-        # if args.output == "jsonpretty":
-        #     print(json.dumps(system_info, indent=4))
-        #     sys.exit()
-        # else:
-        print(show_info(get_snapshot(), args))
+        payload.show_info()
         sys.exit()
 
     if args.status:
