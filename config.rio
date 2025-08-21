@@ -1,0 +1,20 @@
+check.cpu.load_avg:
+  usage = [2.1, 0.5, 1.0]
+
+check.memory:
+  usage = 200gb
+
+check.swap:
+  usage = 30%
+  
+check.mount.home:
+  path = /home
+  usage = 80%
+
+check.process.kdb:
+  name = kdb
+  pattern = /home/user/kdb.q -r 
+
+check.network.iface:
+  name = em1
+

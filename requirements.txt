@@ -5,5 +5,7 @@ distro
 msgpack-python
 nuitka
 loguru
+dictor
 py-cpuinfo
 rio-config
+rich

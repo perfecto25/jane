@@ -6,12 +6,16 @@ import msgpack
 import socket
 import json
 import sys
-
+import os
+from dictor import dictor 
 from loguru import logger
 import argparse
 import textwrap
+from rio_config import Rio
 
-from jane import get_system_info, create_msgpack_payload
+from jane import compare_status, gen_status_table, Payload
+from jane.snapshot import get_snapshot
+from jane.msg_pack import create_msgpack
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -23,21 +27,48 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("-s", "--status", action="store_true", help="get Jane status")
 parser.add_argument("-d", "--daemon", action="store_true", help="start Jane as daemon")
+parser.add_argument("-i", "--info", action="store_true", help="show basic host information")
 parser.add_argument("-c", "--config", help="path to config file")
+parser.add_argument(
+    "-o",
+    "--output",
+    choices=["json", "jsonpretty"],
+    required=False,
+    help="Select output format: json, jsonpretty"
+)
+parser.add_argument("-v", "--verbose", help="verbose output")
 
-
-def main():
+def start():
     args = parser.parse_args()
+    args_dict = vars(args)
+    # parse jane config.rio file
+    cfg_file = args.config or "/etc/jane/config.rio"
+
+    payload = Payload(cfg_file, args_dict)
+
+    if args.info:
+        payload.show_info()
+        sys.exit()
     if args.status:
-        logger.debug("getting Jane status")
-        system_info = get_system_info()
-        print(json.dumps(system_info))
+        if not os.path.exists(cfg_file):
+            print(f"Jane config not found in path {cfg_file}, exiting")
+            sys.exit(1)        
+        #1 get snapshot, 2 compare status snp vs cfg, 3. get status table 
+        
+        return payload.get_status()
+#        snapshot = get_snapshot()
+
+ #       payload = compare_status(snapshot, cfg)
+ #       gen_status_table(payload)
+#        print(json.dumps(result))
+
+#        print(json.dumps(system_info))
         sys.exit()
 
 
     if args.daemon:
-        system_info = get_system_info()
-        payload = create_msgpack_payload(system_info)
+        snapshot = get_snapshot()
+        payload = create_msgpack(snapshot)
         if payload:
             # Optionally save payload
             with open("system_info.msgpack", "wb") as f:
@@ -55,6 +86,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        start()
     except Exception as e:
         print(f"Error: {e}")
