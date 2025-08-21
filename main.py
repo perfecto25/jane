@@ -13,8 +13,9 @@ import argparse
 import textwrap
 from rio_config import Rio
 
-from jane import get_snapshot, compare_status, create_msgpack_payload, gen_status_table, Payload
-
+from jane import compare_status, gen_status_table, Payload
+from jane.snapshot import get_snapshot
+from jane.msg_pack import create_msgpack
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -48,19 +49,17 @@ def start():
     if args.info:
         payload.show_info()
         sys.exit()
-
     if args.status:
         if not os.path.exists(cfg_file):
             print(f"Jane config not found in path {cfg_file}, exiting")
-            sys.exit(1)
-        rio = Rio() 
-        cfg = rio.parse_file(cfg_file)
-        logger.info(cfg)
-        logger.debug("getting Jane status")
+            sys.exit(1)        
+        #1 get snapshot, 2 compare status snp vs cfg, 3. get status table 
         
-        snapshot = get_snapshot()
-        payload = compare_status(snapshot, cfg)
-        gen_status_table(payload)
+        return payload.get_status()
+#        snapshot = get_snapshot()
+
+ #       payload = compare_status(snapshot, cfg)
+ #       gen_status_table(payload)
 #        print(json.dumps(result))
 
 #        print(json.dumps(system_info))
@@ -69,7 +68,7 @@ def start():
 
     if args.daemon:
         snapshot = get_snapshot()
-        payload = create_msgpack_payload(snapshot)
+        payload = create_msgpack(snapshot)
         if payload:
             # Optionally save payload
             with open("system_info.msgpack", "wb") as f:

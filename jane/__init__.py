@@ -1,7 +1,7 @@
 
 import platform
 import psutil
-import msgpack
+
 import socket
 import sys
 import json
@@ -16,7 +16,11 @@ from rich.console import Console
 from rich.table import Table
 from dictor import dictor 
 from .snapshot import get_snapshot
-from .msgpack_  import create_msgpack_payload
+from .msg_pack  import create_msgpack
+
+from rio_config import Rio 
+
+VALID_CHECKS = ["cpu", "memory"]
 
 def bytes_to_gb(b):
     kb = b / 1024
@@ -24,40 +28,47 @@ def bytes_to_gb(b):
     gb = mb / 1024
     return [kb, mb, gb]
 
+
+
 @dataclass
 class Payload:
     
-    cfg: str
+    cfg_file: str
     args: dict
 
-    def show_info(args):
+    def show_info(self):
+        logger.info("A1")
         snapshot = get_snapshot()
-        swap = dictor(snapshot, "memory.swap_total_bytes")
+        logger.info(type(snapshot))
+        logger.info(json.dumps(snapshot, indent=4))
 
-        if dictor(args, "output") and dictor(args, "output") in ["json", "jsonpretty"]:
-            d = {}
-            d["hostname"] = dictor(snapshot, "summary.hostname")
-            d["OS version"] = dictor(snapshot, "summary.os")
-            d["cpu"] = {}
-            d["cpu"]["arch"] = dictor(snapshot, "summary.cpu.arch")
-            d["cpu"]["count"] = dictor(snapshot, "summary.cpu.count")
-            d["memory"] = dictor(snapshot, "summary.memory")
-        
-            if args.output == "jsonpretty":
-                return json.dumps(d, indent=4)
+        if dictor(self.args, "output") and dictor(self.args, "output") in ["json", "jsonpretty"]:
+            if self.args['output'] == "jsonpretty":
+                print(json.dumps(snapshot, indent=4))
             else:
-                return json.dumps(d)        
+                print(json.dumps(snapshot))        
         else:
             console = Console()
             table = Table(title="Jane agent info", show_header=False, box=box.ROUNDED, show_lines=True)
-            table.add_row("Hostname", dictor(snapshot, "summary.hostname"))
-            table.add_row("OS version", dictor(snapshot, "summary.os"))
-            table.add_row("CPU arch", dictor(snapshot, "summary.cpu.arch"))
-            table.add_row("CPU count", dictor(snapshot, "summary.cpu.count", rtype="str"))
-            table.add_row("CPU vendor", dictor(snapshot, "summary.cpu.vendor_id_raw"))
-            table.add_row("CPU brand", dictor(snapshot, "summary.cpu.brand_raw"))
-            table.add_row("Memory", dictor(snapshot, "summary.memory") + f" swap: {bytes_to_gb(swap)[2]}")
+            table.add_row("Hostname", dictor(snapshot, "hostname"))
+            table.add_row("OS version", dictor(snapshot, "os.system"))
+            table.add_row("CPU arch", dictor(snapshot, "cpu.arch"))
+            table.add_row("CPU count", dictor(snapshot, "cpu.count", rtype="str"))
+            table.add_row("CPU vendor", dictor(snapshot, "cpu.vendor"))
+            table.add_row("CPU brand", dictor(snapshot, "cpu.brand"))
+            table.add_row("Memory", f"{dictor(snapshot, "memory.total_b") / (1024**3):.2f} GB")
+            if dictor(snapshot, "memory.swap.total_b") != 0:
+                table.add_row("Swap", f"{dictor(snapshot, "memory.swap.total_b") / (1024**3):.2f} GB")
+            
             console.print(table)
+    
+    def get_status(self):
+        snapshot = get_snapshot()
+        rio = Rio()
+        cfg = rio.parse_file(self.cfg_file)
+        status = compare_status(snapshot, cfg)
+        return status
+
 
 def gen_status_table(payload):
     """ output a status table of system """
@@ -67,7 +78,7 @@ def gen_status_table(payload):
     table.add_column("check", style="cyan", no_wrap=True)
     table.add_column("status", style="magenta")
     table.add_column("output", style="green")
-
+    
     if 'alert' in payload.keys():
         for section, data in payload['alert'].items():
             logger.debug(f'k={section}')
@@ -90,7 +101,11 @@ def gen_status_table(payload):
 def compare_status(snapshot, cfg):
     """ compare actual snapshot vs rules defined in config file """
     print("comparing status of actual vs config file")
-    #import json
+    
+
+    logger.info(f"SNAPSHOT CPU {snapshot['cpu']}")
+
+    logger.debug(f"CFG = {cfg}")
     #logger.info(json.dumps(cfg, indent=4))
     def tree():
         return defaultdict(tree)
@@ -101,27 +116,57 @@ def compare_status(snapshot, cfg):
         return d
     
     ret = tree()
-    ret['alert'] = tree()
-    ret['ok'] = tree()
+    ret[1] = tree()
+    ret[0] = tree()
 
     if 'check' not in cfg.keys():
         raise Exception("COnfig file doesnt have 'check' section")
 
-    for  check_type, check_data in cfg['check'].items():
-        if check_type not in ["cpu", "memory"]:
-            logger.warning(f"{check_type} is not a valid type of check")
-            continue 
 
-        # check cpu load avg
-        if dictor(cfg['check'], 'cpu.load_avg'):            
-            expected = dictor(cfg['check'], 'cpu.load_avg')
-            actual = dictor(snapshot, 'cpu.load_avg')
-            for key, val in expected.items():
-                if dictor(snapshot, f'cpu.load_avg.{key}'):
-                    if actual[key] > expected[key]:
-                        ret['alert']['cpu']['load_avg'][key] = [expected[key], actual[key] ]
+    # def compare(lookup_key):        
+    #     if dictor(cfg['check'], lookup_key):
+    #         expected = dictor(cfg['check'], f'{lookup_key}')
+    #         actual = dictor(snapshot, f'{lookup_key}')
+    #         logger.debug(f"expected = {expected}")
+    #         logger.debug(f"actual = {actual}")
+    #   
+
+    for  check_type, check_data in cfg['check'].items():
+        logger.warning(check_type)
+        logger.warning(check_data)
+
+        if check_type not in VALID_CHECKS:
+            logger.warning(f"{check_type} is not a valid type of check")
+            continue
+
+        expected = dictor(cfg["check"], f"{check_type}")
+        actual = dictor(snapshot, f"{check_type}")
+        for section, data in expected.items():
+            if not dictor(data, "usage"):
+                continue
+            if type(data) is dict:
+                logger.info("DICT")
+                for key in data.keys():
+#                    if type(dictor(expected, f"{section}.{key}")) is list:
+                        
+
+                    logger.warning(expected[section][key])
+                    logger.error(dictor(actual, f"{section}.{key}", rtype="int"))
+                    logger.error(dictor(expected, f"{section}.{key}", rtype="int"))
+
+                    if dictor(actual, f"{section}.{key}", rtype="int") > dictor(expected, f"{section}.{key}", rtype="int"):
+                        logger.error("ALERT")
+                        status_code = 1
+                        
                     else:
-                        ret['ok']['cpu']['load_avg'][key] = [expected[key], actual[key]]
+                        status_code = 0
+                ret[status_code][check_type][section][key] = [expected[section][key], actual[section][key]]
+                # logger.error(actual[k])
+                # logger.error(expected[k])
+                # if actual[k] > expected[k]:
+                #     ret['alert']['cpu']['load_avg'][k] = [expected[k], actual[k] ]
+                # else:
+                #     ret['ok']['cpu' ]['load_avg'][k] = [expected[k], actual[k]]
     return convert(ret)
 #  for key, val in snapshot.items():
 #        logger.warning(f"{key} {val}")

@@ -1,6 +1,6 @@
 import msgpack
 
-def create_msgpack_payload(system_data):
+def create_msgpack(system_data):
     try:
         return msgpack.packb(system_data, use_bin_type=True, strict_types=True)
     except Exception as e:
