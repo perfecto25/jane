@@ -1,6 +1,6 @@
-# jane
+# Jane 
 
-TODO: Write a description here
+Plain Jane - a system monitoring agent
 
 ## Installation
 
@@ -24,6 +24,6 @@ TODO: Write development instructions here
 
 ## Contributors
 
-- [mreider](https://github.com/your-github-user) - creator and maintainer
+- [perfecto25](https://github.com/perfecto25) - creator and maintainer
 
 
