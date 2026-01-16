@@ -1,5 +1,6 @@
 [log]
-destination = "stdout"
+destination = "file" # syslog or file
+file = "some.log"
 level = "debug"
 
 [hq]
@@ -20,7 +21,7 @@ iowait = "2%"
 loadavg = [1,2,15]
 
 [check.memory]
-usage.gb = "200gb"
+usage.gb = 200
 
 [check.filesystem.home]
 path = "/home"

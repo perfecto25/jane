@@ -10,12 +10,12 @@ module Jane
 
   class CLI
     def self.run
-      mode = :help
+      mode = :info
       config_path = "config.toml"
 
       OptionParser.parse do |parser|
         parser.banner = "Usage: jane [options]"
-        
+
         parser.on("-i", "--info", "Show system information") { mode = :info }
         parser.on("-s", "--status", "Show system status vs config") { mode = :status }
         parser.on("-d", "--daemon", "Run as daemon") { mode = :daemon }

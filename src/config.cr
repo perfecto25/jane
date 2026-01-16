@@ -31,10 +31,6 @@ module Jane
     def self.from_toml(data : TOML::Any) : LogConfig
       new(data["destination"].as_s, data["file"]?.try(&.as_s), data["level"].as_s)
     end # from_toml
-
-
-
-
   end
 
   class ServerConfig
@@ -59,21 +55,21 @@ module Jane
     # Parse string format like "2%", "200mb", "300gb"
     def self.parse(str : String) : Threshold
       str = str.downcase.strip
-      
+
       # Check for percentage
       if str.ends_with?("%")
         value = str.rchop.to_f64
         return new(value, :percent)
       end
-      
+
       # Check for byte units
       if str =~ /(\d+(?:\.\d+)?)\s*(b|kb|mb|gb|tb|pb)?$/i
         matches = str.match(/(\d+(?:\.\d+)?)\s*(b|kb|mb|gb|tb|pb)?$/i)
         return new(0.0, :bytes) unless matches
-        
+
         value = matches[1].to_f64
         unit = matches[2]?.try(&.downcase) || "b"
-        
+
         multiplier = case unit
         when "b"  then 1_i64
         when "kb" then 1024_i64
@@ -83,10 +79,10 @@ module Jane
         when "pb" then 1024_i64 ** 5
         else 1_i64
         end
-        
+
         return new(value * multiplier, :bytes)
       end
-      
+
       # Default to raw number
       new(str.to_f64, :raw)
     end
@@ -100,7 +96,7 @@ module Jane
         elsif value.as_h?
           # Handle nested format: usage.pct = 2, usage.gb = 200
           hash = value.as_h
-          
+
           if pct = hash["pct"]?
             return new(pct.as_f, :percent)
           elsif b = hash["b"]?
@@ -121,7 +117,7 @@ module Jane
           return new(value.as_f, :raw)
         end
       end
-      
+
       nil
     end
 
@@ -155,12 +151,12 @@ module Jane
       units = ["B", "KB", "MB", "GB", "TB", "PB"]
       size = bytes.to_f64
       unit_idx = 0
-      
+
       while size >= 1024.0 && unit_idx < units.size - 1
         size /= 1024.0
         unit_idx += 1
       end
-      
+
       "%.2f %s" % [size, units[unit_idx]]
     end
   end
@@ -176,7 +172,7 @@ module Jane
     def self.from_toml(data : TOML::Any) : CheckConfig
       cpu = data["cpu"]? ? CPUCheck.from_toml(data["cpu"]) : nil
       memory = data["memory"]? ? MemoryCheck.from_toml(data["memory"]) : nil
-      
+
       filesystems = Hash(String, FilesystemCheck).new
       data.as_h.each do |key, value|
         if key.starts_with?("filesystem.")
@@ -184,7 +180,7 @@ module Jane
           filesystems[name] = FilesystemCheck.from_toml(value)
         end
       end
-      
+
       new(cpu, memory, filesystems)
     end
   end
@@ -201,7 +197,7 @@ module Jane
       usage = Threshold.from_toml(data, "usage")
       iowait = Threshold.from_toml(data, "iowait")
       loadavg = data["loadavg"]?.try { |la| la.as_a.map(&.as_f) }
-      
+
       new(usage, iowait, loadavg)
     end
   end
@@ -228,7 +224,7 @@ module Jane
     def self.from_toml(data : TOML::Any) : FilesystemCheck
       path = data["path"].as_s
       usage = Threshold.from_toml(data, "usage")
-      
+
       new(path, usage)
     end
   end

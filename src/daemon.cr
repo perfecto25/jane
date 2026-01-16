@@ -10,18 +10,20 @@ module Jane
     def run(config : Config)
       logger = Logger.new(config.log)
       logger.info("Jane Agent starting...")
-      
+
       unless server = config.hq
         logger.error("No server configuration found")
         exit 1
       end
-      
+
       loop do
         begin
           results = SystemMonitor.perform_checks(config)
+          puts results
           data = serialize_results(results)
+ #         puts data
           send_to_server(server, data, logger)
-          
+
           logger.debug("Sent #{results.size} checks to server")
           sleep 10.seconds
         rescue ex
@@ -42,13 +44,13 @@ module Jane
           "timestamp" => Time.utc.to_unix
         }
       end
-      
+
       data.to_msgpack
     end
 
     private def send_to_server(server : ServerConfig, data : Bytes, logger : Logger)
       socket = TCPSocket.new(server.host, server.port)
-      
+
       # Send length prefix
       size_bytes = IO::ByteFormat::BigEndian.encode(data.size.to_u32, Bytes.new(4))
       socket.write(size_bytes.not_nil!)

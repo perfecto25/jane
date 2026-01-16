@@ -1,0 +1,25 @@
+[2026-01-15 19:17:15]  Info -- Jane Agent starting...
+[2026-01-15 19:17:16] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:17:16] Debug -- Sent 6 checks to server
+[2026-01-15 19:17:26] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:17:26] Debug -- Sent 6 checks to server
+[2026-01-15 19:17:36] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:17:36] Debug -- Sent 6 checks to server
+[2026-01-15 19:17:46] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:17:46] Debug -- Sent 6 checks to server
+[2026-01-15 19:17:56] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:17:56] Debug -- Sent 6 checks to server
+[2026-01-15 19:18:07] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:18:07] Debug -- Sent 6 checks to server
+[2026-01-15 19:18:17] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:18:17] Debug -- Sent 6 checks to server
+[2026-01-15 19:18:27] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:18:27] Debug -- Sent 6 checks to server
+[2026-01-15 19:19:06]  Info -- Jane Agent starting...
+[2026-01-15 19:19:06] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:19:06] Debug -- Sent 6 checks to server
+[2026-01-15 19:19:51]  Info -- Jane Agent starting...
+[2026-01-15 19:19:51] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:19:51] Debug -- Sent 6 checks to server
+[2026-01-15 19:20:01] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-15 19:20:01] Debug -- Sent 6 checks to server
