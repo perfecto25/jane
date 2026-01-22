@@ -12,8 +12,13 @@ module Jane
       logger.info("Jane Agent starting...")
 
       unless server = config.hq
-        logger.error("No server configuration found")
+        logger.error("No HQ host configuration found")
         exit 1
+      end
+      logger.info(server.host.to_s)
+      unless server.host.not_nil!.presence && server.port.not_nil!
+        logger.error("Need to provide HQ host and port")
+          exit 1
       end
 
       loop do
@@ -48,8 +53,8 @@ module Jane
       data.to_msgpack
     end
 
-    private def send_to_server(server : ServerConfig, data : Bytes, logger : Logger)
-      socket = TCPSocket.new(server.host, server.port)
+    private def send_to_server(server : HQConfig, data : Bytes, logger : Logger)
+      socket = TCPSocket.new(server.host.not_nil!, server.port.not_nil!)
 
       # Send length prefix
       size_bytes = IO::ByteFormat::BigEndian.encode(data.size.to_u32, Bytes.new(4))

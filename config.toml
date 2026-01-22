@@ -1,11 +1,12 @@
 [log]
-destination = "file" # syslog or file
+#destination = "file" # syslog or file
+destination = "syslog"
 file = "some.log"
 level = "debug"
 
 [hq]
-host = "hq.myhost.com"
-port = 36777
+#host = "hq.myhost.com"
+#port = 36777
 
 [defaults]
 alert.repeat = "yes" # repeat alert on each cycle
@@ -16,8 +17,10 @@ alert.grace.seconds = 60 # wait 60 seconds before sending another alert
 [check]
 
 [check.cpu]
-usage = "7%"
-iowait = "2%"
+#usage = "7%"
+usage.pct = 2
+#iowait = "2%"
+iowait.pct = 15
 loadavg = [1,2,15]
 
 [check.memory]

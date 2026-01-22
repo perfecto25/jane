@@ -23,3 +23,82 @@
 [2026-01-15 19:19:51] Debug -- Sent 6 checks to server
 [2026-01-15 19:20:01] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
 [2026-01-15 19:20:01] Debug -- Sent 6 checks to server
+[2026-01-22 08:37:00]  Info -- Jane Agent starting...
+[2026-01-22 08:37:00] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:37:00] Debug -- Sent 6 checks to server
+[2026-01-22 08:37:11] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:37:11] Debug -- Sent 6 checks to server
+[2026-01-22 08:37:21] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:37:21] Debug -- Sent 6 checks to server
+[2026-01-22 08:37:31] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:37:31] Debug -- Sent 6 checks to server
+[2026-01-22 08:37:41] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:37:41] Debug -- Sent 6 checks to server
+[2026-01-22 08:37:51] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:37:51] Debug -- Sent 6 checks to server
+[2026-01-22 08:38:02] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:38:02] Debug -- Sent 6 checks to server
+[2026-01-22 08:38:12] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:38:12] Debug -- Sent 6 checks to server
+[2026-01-22 08:38:22] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:38:22] Debug -- Sent 6 checks to server
+[2026-01-22 08:38:32] Error -- Failed to send data to server: Hostname lookup for hq.myhost.com failed: No address found
+[2026-01-22 08:38:32] Debug -- Sent 6 checks to server
+[2026-01-22 08:57:30]  Info -- Jane Agent starting...
+[2026-01-22 08:57:30] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 08:57:30] Debug -- Sent 6 checks to server
+[2026-01-22 08:57:41] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 08:57:41] Debug -- Sent 6 checks to server
+[2026-01-22 08:58:01]  Info -- Jane Agent starting...
+[2026-01-22 08:58:01] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 08:58:01] Debug -- Sent 6 checks to server
+[2026-01-22 09:02:08]  Info -- Jane Agent starting...
+[2026-01-22 09:02:08] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:02:08] Debug -- Sent 6 checks to server
+[2026-01-22 09:02:19] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:02:19] Debug -- Sent 6 checks to server
+[2026-01-22 09:02:29] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:02:29] Debug -- Sent 6 checks to server
+[2026-01-22 09:02:57]  Info -- Jane Agent starting...
+[2026-01-22 09:02:57]  Info -- #<Jane::HQConfig:0x7f9780e37d20>
+[2026-01-22 09:02:58] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:02:58] Debug -- Sent 6 checks to server
+[2026-01-22 09:03:08] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:03:08] Debug -- Sent 6 checks to server
+[2026-01-22 09:03:18] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:03:18] Debug -- Sent 6 checks to server
+[2026-01-22 09:03:28] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:03:28] Debug -- Sent 6 checks to server
+[2026-01-22 09:03:38] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:03:38] Debug -- Sent 6 checks to server
+[2026-01-22 09:03:49] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:03:49] Debug -- Sent 6 checks to server
+[2026-01-22 09:03:59] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:03:59] Debug -- Sent 6 checks to server
+[2026-01-22 09:04:09] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:04:09] Debug -- Sent 6 checks to server
+[2026-01-22 09:04:19] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:04:19] Debug -- Sent 6 checks to server
+[2026-01-22 09:04:30] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:04:30] Debug -- Sent 6 checks to server
+[2026-01-22 09:04:40] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:04:40] Debug -- Sent 6 checks to server
+[2026-01-22 09:04:50] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:04:50] Debug -- Sent 6 checks to server
+[2026-01-22 09:05:00] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:05:00] Debug -- Sent 6 checks to server
+[2026-01-22 09:05:10] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:05:10] Debug -- Sent 6 checks to server
+[2026-01-22 09:05:21] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:05:21] Debug -- Sent 6 checks to server
+[2026-01-22 09:05:31] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:05:31] Debug -- Sent 6 checks to server
+[2026-01-22 09:05:41] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:05:41] Debug -- Sent 6 checks to server
+[2026-01-22 09:05:51] Error -- Failed to send data to server: Hostname lookup for  failed: No address associated with hostname
+[2026-01-22 09:05:51] Debug -- Sent 6 checks to server
+[2026-01-22 09:06:28]  Info -- Jane Agent starting...
+[2026-01-22 09:06:28]  Info -- 
+[2026-01-22 09:08:32]  Info -- Jane Agent starting...
+[2026-01-22 09:08:32]  Info -- 
+[2026-01-22 09:08:32] Error -- Need to provide HQ host and port

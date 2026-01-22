@@ -4,7 +4,7 @@ module Jane
   class Config
     property log : LogConfig
     property check : CheckConfig
-    property hq : ServerConfig?
+    property hq : HQConfig?|Nil
 
     def initialize(@log, @check, @hq = nil)
     end
@@ -13,7 +13,7 @@ module Jane
       toml = TOML.parse_file(path)
       log = LogConfig.from_toml(toml["log"])
       check = CheckConfig.from_toml(toml["check"])
-      hq = toml["hq"]? ? ServerConfig.from_toml(toml["hq"]) : nil
+      hq = toml["hq"]? ? HQConfig.from_toml(toml["hq"]) : nil
       new(log, check, hq)
     rescue ex
       abort "Error parsing config file: #{ex.message}"
@@ -33,15 +33,18 @@ module Jane
     end # from_toml
   end
 
-  class ServerConfig
-    property host : String
-    property port : Int32
+  class HQConfig
+    property host : String | Nil
+    property port : Int32 | Nil
 
     def initialize(@host, @port)
     end
 
-    def self.from_toml(data : TOML::Any) : ServerConfig
-      new(data["host"].as_s, data["port"].as_i.to_i32)
+    def self.from_toml(data : TOML::Any) : HQConfig
+      host = data["host"]?.try(&.as_s?).to_s.strip
+      host = "" if host.empty?
+      port_val = data["port"]?.try(&.as_i?).try(&.to_i32) || 80_i32  # default port
+      new(host, port_val)
     end
   end
 
