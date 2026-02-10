@@ -1,8 +1,16 @@
 version: 2.0
 shards:
+  hcl:
+    git: https://github.com/maxfierke/hcl.cr.git
+    version: 0.3.0
+
   msgpack:
     git: https://github.com/crystal-community/msgpack-crystal.git
     version: 1.3.5
+
+  pegmatite:
+    git: https://github.com/jemc/crystal-pegmatite.git
+    version: 0.2.3+git.commit.59b3afb296e79a0eea1a7d35db1d093cfc03f420
 
   tallboy:
     git: https://github.com/epoch/tallboy.git
