@@ -1,4 +1,6 @@
 require "tallboy"
+require "json"
+require "./jane"
 
 module Jane
   module SystemInfo
@@ -6,10 +8,10 @@ module Jane
 
     def display
       info = gather_info
-      
+
       table = Tallboy.table do
         header ["Property", "Value"]
-        
+
         row ["Hostname", info[:hostname]]
         row ["OS", info[:os]]
         row ["Kernel", info[:kernel]]
@@ -22,12 +24,61 @@ module Jane
         row ["Used Memory", info[:used_memory]]
         row ["Free Memory", info[:free_memory]]
         row ["Memory Usage", info[:memory_usage]]
+        row ["Jane agent version", info[:jane_version]]
       end
-      
+
       puts table.render
     end
 
-    private def gather_info : Hash(Symbol, String)
+
+    struct Metrics
+      include JSON::Serializable
+      property hostname : String
+      property os : String
+      property kernel : String
+      property uptime : String
+      property cpu_model : String
+      property cpu_cores : Int32
+      property cpu_usage : String
+      property load_avg : String
+      property total_memory : String
+      property used_memory : String
+      property free_memory : String
+      property memory_usage : String
+      property jane_version : String
+      def initialize(
+        @hostname, @os, @kernel, @uptime, @cpu_model, @cpu_cores, @cpu_usage,
+        @load_avg, @total_memory, @used_memory, @free_memory, @memory_usage, @jane_version
+        )
+      end
+    end
+
+    def get_metrics
+      cpu_info = read_cpu_info
+      mem_info = read_memory_info
+      uptime = read_uptime
+      load_avg = read_loadavg
+      cpu_usage = calculate_cpu_usage
+      puts mem_info[:total]
+      Metrics.new(
+        hostname: read_hostname,
+        os: read_os_info,
+        kernel: read_kernel,
+        uptime: format_uptime(uptime),
+        cpu_model: cpu_info[:model].as(String),
+        cpu_cores: cpu_info[:cores].as(Int32),
+        cpu_usage: "%.2f%%" % cpu_usage,
+        load_avg: load_avg.join(", "),
+        total_memory: format_bytes(mem_info[:total].as(Int64)),
+        used_memory: format_bytes(mem_info[:used].as(Int64)),
+        free_memory: format_bytes(mem_info[:available].as(Int64)),
+        memory_usage: "%.2f%%" % mem_info[:usage_pct].as(Float64),
+        jane_version: Jane::VERSION
+      )
+    end
+
+
+    def gather_info : Hash(Symbol, String)
       cpu_info = read_cpu_info
       mem_info = read_memory_info
       uptime = read_uptime
@@ -43,11 +94,12 @@ module Jane
       result[:cpu_cores] = cpu_info[:cores].as(Int32).to_s
       result[:cpu_usage] = "%.2f%%" % cpu_usage
       result[:load_avg] = load_avg.join(", ")
+      result[:free_memory] = format_bytes(mem_info[:available].as(Int64))
       result[:total_memory] = format_bytes(mem_info[:total].as(Int64))
       result[:used_memory] = format_bytes(mem_info[:used].as(Int64))
-      result[:free_memory] = format_bytes(mem_info[:available].as(Int64))
       result[:memory_usage] = "%.2f%%" % mem_info[:usage_pct].as(Float64)
-      result
+      result[:jane_version] = Jane::VERSION
+      return result
     end
 
     def read_hostname : String
@@ -73,7 +125,7 @@ module Jane
     def read_cpu_info : Hash(Symbol, String | Int32)
       model = ""
       cores = 0
-      
+
       File.each_line("/proc/cpuinfo") do |line|
         if line.starts_with?("model name")
           model = line.split(":", 2)[1].strip if model.empty?
@@ -81,11 +133,11 @@ module Jane
           cores += 1
         end
       end
-      
+
       result = Hash(Symbol, String | Int32).new
       result[:model] = model
       result[:cores] = cores
-      result
+      return result
     end
 
     def read_memory_info : Hash(Symbol, Int64 | Float64)
@@ -94,7 +146,7 @@ module Jane
       mem_available = 0_i64
       mem_buffers = 0_i64
       mem_cached = 0_i64
-      
+
       File.each_line("/proc/meminfo") do |line|
         parts = line.split
         case parts[0]
@@ -105,16 +157,16 @@ module Jane
         when "Cached:"       then mem_cached = parts[1].to_i64 * 1024
         end
       end
-      
+
       mem_available = mem_free + mem_buffers + mem_cached if mem_available == 0
       mem_used = mem_total - mem_available
-      
+
       result = Hash(Symbol, Int64 | Float64).new
       result[:total] = mem_total
       result[:used] = mem_used
       result[:available] = mem_available
       result[:usage_pct] = (mem_used.to_f64 / mem_total.to_f64) * 100.0
-      result
+      return result
     end
 
     def read_uptime : Float64
@@ -130,10 +182,10 @@ module Jane
       stat1 = read_cpu_stat
       sleep 100.milliseconds
       stat2 = read_cpu_stat
-      
+
       total_diff = stat2[:total] - stat1[:total]
       idle_diff = stat2[:idle] - stat1[:idle]
-      
+
       return 0.0 if total_diff == 0
       ((total_diff - idle_diff).to_f64 / total_diff.to_f64) * 100.0
     end
@@ -141,7 +193,7 @@ module Jane
     private def read_cpu_stat : Hash(Symbol, Int64)
       line = File.read_lines("/proc/stat").first
       parts = line.split
-      
+
       user = parts[1].to_i64
       nice = parts[2].to_i64
       system = parts[3].to_i64
@@ -149,7 +201,7 @@ module Jane
       iowait = parts[5].to_i64
       irq = parts[6].to_i64
       softirq = parts[7].to_i64
-      
+
       result = Hash(Symbol, Int64).new
       result[:idle] = idle + iowait
       result[:total] = user + nice + system + idle + iowait + irq + softirq
@@ -160,7 +212,7 @@ module Jane
       days = (seconds / 86400).to_i
       hours = ((seconds % 86400) / 3600).to_i
       minutes = ((seconds % 3600) / 60).to_i
-      
+
       "#{days}d #{hours}h #{minutes}m"
     end
 
@@ -168,12 +220,12 @@ module Jane
       units = ["B", "KB", "MB", "GB", "TB"]
       size = bytes.to_f64
       unit_idx = 0
-      
+
       while size >= 1024.0 && unit_idx < units.size - 1
         size /= 1024.0
         unit_idx += 1
       end
-      
+
       "%.2f %s" % [size, units[unit_idx]]
     end
   end

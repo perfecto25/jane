@@ -1,6 +1,6 @@
 # Jane 
 
-Plain Jane - a system monitoring agent
+Farm to table metrics and events.
 
 ## Installation
 
@@ -25,5 +25,3 @@ TODO: Write development instructions here
 ## Contributors
 
 - [perfecto25](https://github.com/perfecto25) - creator and maintainer
-
-

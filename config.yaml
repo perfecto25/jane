@@ -1,0 +1,81 @@
+---
+hq:
+  host: localhost
+  port: 20033
+
+log:
+  level: info
+  destination: syslog
+
+alerts:
+  repeat: yes
+  groups: all
+
+
+# directory which contains additional check files
+include: /etc/jane/conf.d
+
+---
+
+checks:
+  cpu:
+    usage: 2%
+  iowait: { usage: 200gb }
+  loadavg: { usage: [1,8,23] }
+  memory:
+    usage: 200gb
+    action:
+      exec: alert # alert, unmoitor, cmd
+      exec:
+      every: 10
+
+
+  filesystem:
+    home:
+      path: /home
+      usage: 30%
+    opt:
+      path: /opt
+      usage: 200gb
+      cycles: 3 # if usage is still 200gb for 3 jane cycles
+
+  process:
+    backup:
+      pidfile: /tmp/pidfile
+    reports:
+      pattern: /home/user/report.py
+
+  network:
+    nginx-server1:
+      ip: 100.2.3.4
+      port: 2333
+      proto: tcp
+
+
+
+alert.repeat = "yes" # repeat alert on each cycle
+alert.groups = "all" # alert all configured groups
+alert.users = "all"
+alert.grace.seconds = 60 # wait 60 seconds before sending another alert
+
+[check]
+
+[check.cpu]
+#usage = "7%"
+usage.pct = 2
+#iowait = "2%"
+iowait.pct = 15
+loadavg = [1,2,15]
+
+[check.memory]
+usage.gb = 200
+# repeat alert on every 10gb memory increase
+limit.every = 10
+
+repeat = 10 # repeat alert on every 10gb memory increase
+exec.alert
+exec.cmd = "systemctl restart network"
+
+[check.filesystem.home]
+path = "/home"
+usage.pct = 30

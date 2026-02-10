@@ -33,6 +33,7 @@ module Jane
       when :status
         config = Config.from_file(config_path)
         SystemMonitor.display_status(config)
+
       when :daemon
         config = Config.from_file(config_path)
         Daemon.run(config)

@@ -5,8 +5,9 @@ file = "some.log"
 level = "debug"
 
 [hq]
-#host = "hq.myhost.com"
+host = "192.168.30.4"
 #port = 36777
+cycle = 2
 
 [defaults]
 alert.repeat = "yes" # repeat alert on each cycle
@@ -25,6 +26,12 @@ loadavg = [1,2,15]
 
 [check.memory]
 usage.gb = 200
+# repeat alert on every 10gb memory increase
+limit.every = 10
+
+repeat = 10 # repeat alert on every 10gb memory increase
+exec.alert
+exec.cmd = "systemctl restart network"
 
 [check.filesystem.home]
 path = "/home"

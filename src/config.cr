@@ -36,15 +36,17 @@ module Jane
   class HQConfig
     property host : String | Nil
     property port : Int32 | Nil
+    property cycle : Int32 | Nil
 
-    def initialize(@host, @port)
+    def initialize(@host, @port, @cycle)
     end
 
     def self.from_toml(data : TOML::Any) : HQConfig
       host = data["host"]?.try(&.as_s?).to_s.strip
       host = "" if host.empty?
       port_val = data["port"]?.try(&.as_i?).try(&.to_i32) || 80_i32  # default port
-      new(host, port_val)
+      cycle = data["cycle"]?.try(&.as_i?).try(&.to_i32) || 10_i32 # 10 second default cycle
+      new(host, port_val, cycle)
     end
   end
 
