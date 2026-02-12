@@ -38,3 +38,7 @@ alert.exec = "systemctl status NetworkManager"
 [check.filesystem.home]
 path = "/home"
 usage.pct = 30
+
+[check.filesystem.root]
+path = "/"
+usage = "5gb"

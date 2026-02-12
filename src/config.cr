@@ -1,5 +1,6 @@
 require "toml"
 
+
 module Jane
   class Config
     property log : LogConfig
@@ -180,14 +181,14 @@ module Jane
 
     def self.from_toml(data : TOML::Any) : CheckConfig
       cpu = data["cpu"]? ? CPUCheck.from_toml(data["cpu"]) : nil
-      puts "checkcfg-1"
       memory = data["memory"]? ? MemoryCheck.from_toml(data["memory"]) : nil
+      filesystems = Hash(String, FilesystemCheck).new 
 
-      filesystems = Hash(String, FilesystemCheck).new
       data.as_h.each do |key, value|
-        if key.starts_with?("filesystem.")
-          name = key.sub("filesystem.", "")
-          filesystems[name] = FilesystemCheck.from_toml(value)
+        if key == "filesystem"
+          value.as_h.each do |fsname, fsval|
+            filesystems[fsname] = FilesystemCheck.from_toml(fsval)
+          end
         end
       end
 

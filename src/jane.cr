@@ -51,7 +51,6 @@ module Jane
 end
 
 begin
-  puts "CLI run"
   Jane::CLI.run
 rescue ex
   puts "Error running Jane: #{ex.message}"
