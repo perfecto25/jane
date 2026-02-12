@@ -42,3 +42,6 @@ usage.pct = 30
 [check.filesystem.root]
 path = "/"
 usage = "5gb"
+
+[check.interface.em1]
+name = "em1"
