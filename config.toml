@@ -20,18 +20,20 @@ alert.grace.seconds = 60 # wait 60 seconds before sending another alert
 [check.cpu]
 #usage = "7%"
 usage.pct = 2
-#iowait = "2%"
-iowait.pct = 15
-loadavg = [1,2,15]
+iowait = "2%"
+#iowait.pct = 15
+loadavg = [0.6, 0.9, 15.0]
+
 
 [check.memory]
 usage.gb = 200
-# repeat alert on every 10gb memory increase
-limit.every = 10
 
-repeat = 10 # repeat alert on every 10gb memory increase
-exec.alert
-exec.cmd = "systemctl restart network"
+# also alert if usage hits these values (usage in GB)
+alert.include = [210,250,300]
+
+# also execute this command if alert is raised
+alert.exec = "systemctl status NetworkManager"
+
 
 [check.filesystem.home]
 path = "/home"

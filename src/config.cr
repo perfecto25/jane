@@ -10,9 +10,13 @@ module Jane
     end
 
     def self.from_file(path : String) : Config
+      puts "0"
       toml = TOML.parse_file(path)
+      puts "1"
       log = LogConfig.from_toml(toml["log"])
+      puts "2"
       check = CheckConfig.from_toml(toml["check"])
+      puts "3"
       hq = toml["hq"]? ? HQConfig.from_toml(toml["hq"]) : nil
       new(log, check, hq)
     rescue ex
@@ -176,6 +180,7 @@ module Jane
 
     def self.from_toml(data : TOML::Any) : CheckConfig
       cpu = data["cpu"]? ? CPUCheck.from_toml(data["cpu"]) : nil
+      puts "checkcfg-1"
       memory = data["memory"]? ? MemoryCheck.from_toml(data["memory"]) : nil
 
       filesystems = Hash(String, FilesystemCheck).new

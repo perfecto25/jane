@@ -1,8 +1,8 @@
 require "msgpack"
 require "socket"
 require "./logger"
-require "./system_monitor"
-require "./system_info"
+require "./monitor"
+require "./info"
 
 module Jane
   module Daemon
@@ -36,8 +36,8 @@ module Jane
 
           results = {
 #            "status" => SystemMonitor.perform_checks(config),
-            "checks" => SystemMonitor.perform_checks(config),
-            "metrics" => SystemInfo.get_metrics
+            "checks" => Monitor.perform_checks(config),
+            "metrics" => Info.get_metrics
             }
 
           data = serialize_results(results)
@@ -54,7 +54,7 @@ module Jane
     end
 
 #    private_def to_msgpack(results)
-    private def serialize_results(results : Hash(String, Array(Jane::SystemMonitor::Check) | Jane::SystemInfo::Metrics))
+    private def serialize_results(results : Hash(String, Array(Jane::Monitor::Check) | Jane::Info::Metrics))
       #results : Array(SystemMonitor::Check)) : Bytes
       #
       data = results.to_json

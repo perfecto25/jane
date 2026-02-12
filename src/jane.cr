@@ -1,7 +1,7 @@
 require "option_parser"
 require "./config"
-require "./system_info"
-require "./system_monitor"
+require "./info"
+require "./monitor"
 require "./daemon"
 require "./logger"
 
@@ -29,10 +29,10 @@ module Jane
 
       case mode
       when :info
-        SystemInfo.display
+        Info.display
       when :status
         config = Config.from_file(config_path)
-        SystemMonitor.display_status(config)
+        Monitor.display_status(config)
 
       when :daemon
         config = Config.from_file(config_path)
@@ -50,4 +50,9 @@ module Jane
   end
 end
 
-Jane::CLI.run
+begin
+  puts "CLI run"
+  Jane::CLI.run
+rescue ex
+  puts "Error running Jane: #{ex.message}"
+end

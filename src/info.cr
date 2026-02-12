@@ -1,9 +1,10 @@
 require "tallboy"
 require "json"
 require "./jane"
+require "./utils/*"
 
 module Jane
-  module SystemInfo
+  module Info
     extend self
 
     def display
@@ -26,7 +27,6 @@ module Jane
         row ["Memory Usage", info[:memory_usage]]
         row ["Jane agent version", info[:jane_version]]
       end
-
       puts table.render
     end
 
@@ -54,11 +54,11 @@ module Jane
     end
 
     def get_metrics
-      cpu_info = read_cpu_info
-      mem_info = read_memory_info
+      cpu_info = Cpu.read_cpu_info
+      mem_info = Memory.read_memory_info
       uptime = read_uptime
-      load_avg = read_loadavg
-      cpu_usage = calculate_cpu_usage
+      load_avg = Cpu.read_loadavg
+      cpu_usage = Cpu.calculate_cpu_usage
       puts mem_info[:total]
       Metrics.new(
         hostname: read_hostname,
@@ -79,11 +79,11 @@ module Jane
 
 
     def gather_info : Hash(Symbol, String)
-      cpu_info = read_cpu_info
-      mem_info = read_memory_info
+      cpu_info = Cpu.read_cpu_info
+      mem_info = Memory.read_memory_info
       uptime = read_uptime
-      load_avg = read_loadavg
-      cpu_usage = calculate_cpu_usage
+      load_avg = Cpu.read_loadavg
+      cpu_usage = Cpu.calculate_cpu_usage
 
       result = Hash(Symbol, String).new
       result[:hostname] = read_hostname
@@ -122,101 +122,18 @@ module Jane
       File.read("/proc/sys/kernel/osrelease").strip
     end
 
-    def read_cpu_info : Hash(Symbol, String | Int32)
-      model = ""
-      cores = 0
-
-      File.each_line("/proc/cpuinfo") do |line|
-        if line.starts_with?("model name")
-          model = line.split(":", 2)[1].strip if model.empty?
-        elsif line.starts_with?("processor")
-          cores += 1
-        end
-      end
-
-      result = Hash(Symbol, String | Int32).new
-      result[:model] = model
-      result[:cores] = cores
-      return result
-    end
-
-    def read_memory_info : Hash(Symbol, Int64 | Float64)
-      mem_total = 0_i64
-      mem_free = 0_i64
-      mem_available = 0_i64
-      mem_buffers = 0_i64
-      mem_cached = 0_i64
-
-      File.each_line("/proc/meminfo") do |line|
-        parts = line.split
-        case parts[0]
-        when "MemTotal:"     then mem_total = parts[1].to_i64 * 1024
-        when "MemFree:"      then mem_free = parts[1].to_i64 * 1024
-        when "MemAvailable:" then mem_available = parts[1].to_i64 * 1024
-        when "Buffers:"      then mem_buffers = parts[1].to_i64 * 1024
-        when "Cached:"       then mem_cached = parts[1].to_i64 * 1024
-        end
-      end
-
-      mem_available = mem_free + mem_buffers + mem_cached if mem_available == 0
-      mem_used = mem_total - mem_available
-
-      result = Hash(Symbol, Int64 | Float64).new
-      result[:total] = mem_total
-      result[:used] = mem_used
-      result[:available] = mem_available
-      result[:usage_pct] = (mem_used.to_f64 / mem_total.to_f64) * 100.0
-      return result
-    end
-
     def read_uptime : Float64
       File.read("/proc/uptime").split[0].to_f64
-    end
-
-    def read_loadavg : Array(Float64)
-      parts = File.read("/proc/loadavg").split
-      [parts[0].to_f64, parts[1].to_f64, parts[2].to_f64]
-    end
-
-    def calculate_cpu_usage : Float64
-      stat1 = read_cpu_stat
-      sleep 100.milliseconds
-      stat2 = read_cpu_stat
-
-      total_diff = stat2[:total] - stat1[:total]
-      idle_diff = stat2[:idle] - stat1[:idle]
-
-      return 0.0 if total_diff == 0
-      ((total_diff - idle_diff).to_f64 / total_diff.to_f64) * 100.0
-    end
-
-    private def read_cpu_stat : Hash(Symbol, Int64)
-      line = File.read_lines("/proc/stat").first
-      parts = line.split
-
-      user = parts[1].to_i64
-      nice = parts[2].to_i64
-      system = parts[3].to_i64
-      idle = parts[4].to_i64
-      iowait = parts[5].to_i64
-      irq = parts[6].to_i64
-      softirq = parts[7].to_i64
-
-      result = Hash(Symbol, Int64).new
-      result[:idle] = idle + iowait
-      result[:total] = user + nice + system + idle + iowait + irq + softirq
-      result
     end
 
     private def format_uptime(seconds : Float64) : String
       days = (seconds / 86400).to_i
       hours = ((seconds % 86400) / 3600).to_i
       minutes = ((seconds % 3600) / 60).to_i
-
-      "#{days}d #{hours}h #{minutes}m"
+      return "#{days}d #{hours}h #{minutes}m"
     end
 
-    private def format_bytes(bytes : Int64) : String
+    def format_bytes(bytes : Int64) : String
       units = ["B", "KB", "MB", "GB", "TB"]
       size = bytes.to_f64
       unit_idx = 0
@@ -225,8 +142,7 @@ module Jane
         size /= 1024.0
         unit_idx += 1
       end
-
-      "%.2f %s" % [size, units[unit_idx]]
+      return "%.2f %s" % [size, units[unit_idx]]
     end
   end
 end
