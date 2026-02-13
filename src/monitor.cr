@@ -72,9 +72,17 @@ module Jane
         puts name
         results.concat(Filesystem.check_filesystem(name, fs_check))
       end
+
+      #  checks
+      config.check.network.interface.each do |name, iface_check|
+        puts name
+        results.concat(Network.check_iface(name, iface_check))
+      end
+
+
       return results
     end # perform_checks
 
-  
+
   end # SystemMonitor
 end # Jane

@@ -11,13 +11,9 @@ module Jane
     end
 
     def self.from_file(path : String) : Config
-      puts "0"
       toml = TOML.parse_file(path)
-      puts "1"
       log = LogConfig.from_toml(toml["log"])
-      puts "2"
       check = CheckConfig.from_toml(toml["check"])
-      puts "3"
       hq = toml["hq"]? ? HQConfig.from_toml(toml["hq"]) : nil
       new(log, check, hq)
     rescue ex
@@ -175,6 +171,7 @@ module Jane
     property cpu : CPUCheck?
     property memory : MemoryCheck?
     property filesystems : Hash(String, FilesystemCheck)
+    property network : Hash(String, NetworkIfaceCheck)
 
     def initialize(@cpu, @memory, @filesystems)
     end
@@ -182,7 +179,7 @@ module Jane
     def self.from_toml(data : TOML::Any) : CheckConfig
       cpu = data["cpu"]? ? CPUCheck.from_toml(data["cpu"]) : nil
       memory = data["memory"]? ? MemoryCheck.from_toml(data["memory"]) : nil
-      filesystems = Hash(String, FilesystemCheck).new 
+      filesystems = Hash(String, FilesystemCheck).new
 
       data.as_h.each do |key, value|
         if key == "filesystem"
@@ -238,5 +235,82 @@ module Jane
 
       new(path, usage)
     end
+  end # filesystem
+
+  # Abstract base class for all network checks
+  abstract class NetworkCheck
+    property name : String
+
+    def initialize(@name)
+    end
+
+    # Factory method to create the right subclass from TOML
+    def self.from_toml(key : String, data : TOML::Any) : NetworkCheck
+      case key
+      when "interface"  then InterfaceCheck.from_toml(data)
+      # when "host"       then HostCheck.from_toml(data)
+      # when "socket"     then SocketCheck.from_toml(data)
+      # when "bandwidth"  then BandwidthCheck.from_toml(data)
+      else raise "Unknown network check type: #{key}"
+      end
+    end
   end
-end
+
+  class InterfaceCheck < NetworkCheck
+    property interface : String
+
+    def initialize(@name, @interface)
+    end
+
+    def self.from_toml(data : TOML::Any) : InterfaceCheck
+      name = data["name"].as_s
+      interface = data["interface"]?.try(&.as_s) || name
+      new(name, interface)
+    end
+  end
+
+  class HostCheck < NetworkCheck
+    property address : String
+
+    def initialize(@name, @address)
+    end
+
+    def self.from_toml(data : TOML::Any) : HostCheck
+      name = data["name"].as_s
+      address = data["address"].as_s
+      new(name, address)
+    end
+  end
+
+  class SocketCheck < NetworkCheck
+    property address : String
+    property port : Int32
+
+    def initialize(@name, @address, @port)
+    end
+
+    def self.from_toml(data : TOML::Any) : SocketCheck
+      name = data["name"].as_s
+      address = data["address"].as_s
+      port = data["port"].as_i
+      new(name, address, port)
+    end
+  end
+
+  class BandwidthCheck < NetworkCheck
+    property interface : String
+    property threshold : Threshold?
+
+    def initialize(@name, @interface, @threshold)
+    end
+
+    def self.from_toml(data : TOML::Any) : BandwidthCheck
+      name = data["name"].as_s
+      interface = data["interface"].as_s
+      threshold = Threshold.from_toml(data, "threshold")
+      new(name, interface, threshold)
+    end
+  end
+
+
+end # jane

@@ -43,5 +43,11 @@ usage.pct = 30
 path = "/"
 usage = "5gb"
 
-[check.interface.em1]
-name = "em1"
+[check.network.interface.em1]
+name = "em1 iface"
+
+
+[check.network.connection.postfix]
+name = "postfix port"
+address = "127.0.0.1"
+port = 25
