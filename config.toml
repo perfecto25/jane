@@ -9,7 +9,7 @@ host = "192.168.30.4"
 #port = 36777
 
 [defaults]
-cycle = 5
+cycle = 10
 alert.repeat = "yes" # repeat alert on each cycle
 alert.groups = "all" # alert all configured groups
 alert.users = "all"
