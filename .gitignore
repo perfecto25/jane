@@ -3,3 +3,6 @@
 /bin/
 /.shards/
 *.dwarf
+.claude
+state.json
+bin/*

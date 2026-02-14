@@ -1,4 +1,4 @@
-name: jane-agent
+name: jane
 version: 0.1.0
 
 dependencies:
@@ -8,9 +8,6 @@ dependencies:
     github: crystal-community/msgpack-crystal
   toml:
     github: crystal-community/toml.cr
-  hcl:
-    github: maxfierke/hcl.cr
-    version: ~> 0.3.0
 
 crystal: 1.11.0
 

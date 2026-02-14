@@ -7,13 +7,14 @@ level = "debug"
 [hq]
 host = "192.168.30.4"
 #port = 36777
-cycle = 2
 
 [defaults]
+cycle = 5
 alert.repeat = "yes" # repeat alert on each cycle
 alert.groups = "all" # alert all configured groups
 alert.users = "all"
 alert.grace.seconds = 60 # wait 60 seconds before sending another alert
+include.checks = "/tmp/*.toml"
 
 [check]
 
@@ -26,10 +27,9 @@ loadavg = [0.6, 0.9, 15.0]
 
 
 [check.memory]
-usage.gb = 200
-
+usage.mb = [10,20,30]
+tag = "memory"
 # also alert if usage hits these values (usage in GB)
-alert.include = [210,250,300]
 
 # also execute this command if alert is raised
 alert.exec = "systemctl status NetworkManager"
@@ -37,17 +37,54 @@ alert.exec = "systemctl status NetworkManager"
 
 [check.filesystem.home]
 path = "/home"
-usage.pct = 30
+usage.gb = [145,146,200]
 
 [check.filesystem.root]
 path = "/"
 usage = "5gb"
 
+[check.file.testdir]
+path = "/tmp/testdir"
+
 [check.network.interface.em1]
 name = "em1 iface"
 
 
-[check.network.connection.postfix]
-name = "postfix port"
-address = "127.0.0.1"
-port = 25
+[check.network.connection.mars]
+name = "sample nc test"
+address = "mars"
+port = 22
+tag = "trading"
+
+[check.network.connection.phoebe]
+address = "192.168.40.23"
+port = 2660
+
+[check.network.bandwidth.atlas]
+# requires iperf3 to be installed both on local host and remote host (remote host should have iperf3 running)
+# iperf3 will run locally for the duraction of Jane cycle - 1, ie if jane cycle = 5 seconds, iperf3 will run for 4 seconds.
+name = "check bandwidth to atlas"
+address = "atlas"
+#port = 5321 # if port not provided, default iperf3 port 5201 will be used.
+limit.mbps = 20
+tag = ["trading", "network"]
+
+[check.process.docker]
+name = "check if docker is running"
+match = "/usr/bin/docker"
+
+[check.process.nginx]
+pidfile = "/var/run/nginx.pid"
+
+[check.process.myapp]
+#match = "/usr/.*/bin/myapp*"
+
+[check.file.hosts]
+path = "/etc/hosts"
+user = "root"
+group = "root"
+mode = "7550"
+
+[check.file.nonexistent]
+path = "/opt/fakefile"
+user = "jsmith"

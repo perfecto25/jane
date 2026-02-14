@@ -46,7 +46,7 @@ module Jane
       usage = get_filesystem_usage(fs_check.path)
       return results unless usage
 
-      if threshold = fs_check.usage
+      fs_check.usage.each do |threshold|
         used_bytes = usage[:used].as(Int64)
         total_bytes = usage[:total].as(Int64)
         usage_pct = usage[:usage_pct].as(Float64)
@@ -63,6 +63,7 @@ module Jane
             threshold.format_value,
             msg
           )
+          break
         when :percent
           limit_pct = threshold.to_percent
           status = usage_pct > limit_pct ? :alert : :ok
@@ -74,6 +75,7 @@ module Jane
             "%.2f%%" % limit_pct,
             msg
           )
+          break
         end
       end
       return results

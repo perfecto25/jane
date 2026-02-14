@@ -78,40 +78,46 @@ module Jane
       results = [] of Monitor::Check
 
       # CPU Usage
-      if threshold = cpu_check.usage
+      unless cpu_check.usage.empty?
         usage = calculate_cpu_usage
 
-        case threshold.unit
-        when :percent
-          limit = threshold.to_percent
-          status = usage > limit ? :alert : :ok
-          msg = status == :alert ? "CPU usage exceeds limit" : "Within limits"
-          results << Monitor::Check.new(
-            "CPU Usage",
-            status,
-            "%.2f%%" % usage,
-            "%.2f%%" % limit,
-            msg
-          )
+        cpu_check.usage.each do |threshold|
+          case threshold.unit
+          when :percent
+            limit = threshold.to_percent
+            status = usage > limit ? :alert : :ok
+            msg = status == :alert ? "CPU usage exceeds limit" : "Within limits"
+            results << Monitor::Check.new(
+              "CPU Usage",
+              status,
+              "%.2f%%" % usage,
+              "%.2f%%" % limit,
+              msg
+            )
+            break
+          end
         end
       end
 
       # IO Wait
-      if threshold = cpu_check.iowait
+      unless cpu_check.iowait.empty?
         iowait = read_iowait
 
-        case threshold.unit
-        when :percent
-          limit = threshold.to_percent
-          status = iowait > limit ? :alert : :ok
-          msg = status == :alert ? "IO wait exceeds limit" : "Within limits"
-          results << Monitor::Check.new(
-            "CPU IO Wait",
-            status,
-            "%.2f%%" % iowait,
-            "%.2f%%" % limit,
-            msg
-          )
+        cpu_check.iowait.each do |threshold|
+          case threshold.unit
+          when :percent
+            limit = threshold.to_percent
+            status = iowait > limit ? :alert : :ok
+            msg = status == :alert ? "IO wait exceeds limit" : "Within limits"
+            results << Monitor::Check.new(
+              "CPU IO Wait",
+              status,
+              "%.2f%%" % iowait,
+              "%.2f%%" % limit,
+              msg
+            )
+            break
+          end
         end
       end
 

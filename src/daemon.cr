@@ -1,14 +1,17 @@
+require "json"
 require "msgpack"
 require "socket"
+require "toml"
 require "./logger"
 require "./monitor"
 require "./info"
+require "./state"
 
 module Jane
   module Daemon
     extend self
 
-    def run(config : Config)
+    def run(config : Config, config_path : String = "config.toml")
       logger = Logger.new(config.log)
       logger.info("Jane Agent starting...")
 
@@ -22,22 +25,29 @@ module Jane
         exit 1
       end
 
-      unless cycle = hq.cycle.not_nil!.to_i32
-        cycle = 10
-      end
+      cycle = config.defaults.cycle
 
       unless cycle >= 2
-        logger.error("HQ cycle time cannot be less than 2 seconds")
+        logger.error("Jane cycle time cannot be less than 2 seconds")
         exit 1
       end
 
       loop do
         begin
 
+          all_checks = Monitor.perform_checks(config)
+          unmonitored_tags = State.unmonitored_tags(config_path)
+          puts unmonitored_tags
+          filtered_checks = all_checks.reject { |c| c.tags.any? { |t| unmonitored_tags.includes?(t) } }
+
+          config_toml = TOML.parse_file(config_path)
+          config_json = JSON.parse(toml_to_json(config_toml))
+
           results = {
-#            "status" => SystemMonitor.perform_checks(config),
-            "checks" => Monitor.perform_checks(config),
-            "metrics" => Info.get_metrics
+            "checks" => filtered_checks,
+            "metrics" => Info.get_metrics,
+            "unmonitored" => unmonitored_tags,
+            "config" => config_json,
             }
 
           data = serialize_results(results)
@@ -54,7 +64,7 @@ module Jane
     end
 
 #    private_def to_msgpack(results)
-    private def serialize_results(results : Hash(String, Array(Jane::Monitor::Check) | Jane::Info::Metrics))
+    private def serialize_results(results : Hash(String, Array(Jane::Monitor::Check) | Jane::Info::Metrics | Array(String) | JSON::Any))
       #results : Array(SystemMonitor::Check)) : Bytes
       #
       data = results.to_json
@@ -71,6 +81,40 @@ module Jane
       # end
       puts data
       data.to_msgpack
+    end
+
+    private def toml_to_json(hash : Hash(String, TOML::Any)) : String
+      JSON.build do |json|
+        json.object do
+          hash.each do |key, value|
+            json.field(key) { toml_value_to_json(value, json) }
+          end
+        end
+      end
+    end
+
+    private def toml_value_to_json(value : TOML::Any, json : JSON::Builder)
+      raw = value.raw
+      case raw
+      when Hash
+        json.object do
+          raw.as(Hash(String, TOML::Any)).each do |k, v|
+            json.field(k) { toml_value_to_json(v, json) }
+          end
+        end
+      when Array
+        json.array do
+          raw.as(Array(TOML::Any)).each do |v|
+            toml_value_to_json(v, json)
+          end
+        end
+      when String then json.string(raw.as(String))
+      when Int64  then json.number(raw.as(Int64))
+      when Float64 then json.number(raw.as(Float64))
+      when Bool   then json.bool(raw.as(Bool))
+      when Time   then json.string(raw.as(Time).to_s)
+      else             json.null
+      end
     end
 
     private def send_to_server(host : String, port : Int32, data : Bytes, cycle : Int32, logger : Logger)

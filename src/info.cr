@@ -22,9 +22,11 @@ module Jane
         row ["CPU Usage", info[:cpu_usage]]
         row ["Load Average", info[:load_avg]]
         row ["Total Memory", info[:total_memory]]
-        row ["Used Memory", info[:used_memory]]
+        row ["Used Memory", "#{info[:used_memory]} (#{info[:memory_usage]})"]
         row ["Free Memory", info[:free_memory]]
-        row ["Memory Usage", info[:memory_usage]]
+        if info[:swap_total]? && info[:swap_total] != "0.00 B"
+          row ["Swap", "#{info[:swap_used]} / #{info[:swap_total]} (#{info[:swap_usage]})"]
+        end
         row ["Jane agent version", info[:jane_version]]
       end
       puts table.render
@@ -98,6 +100,12 @@ module Jane
       result[:total_memory] = format_bytes(mem_info[:total].as(Int64))
       result[:used_memory] = format_bytes(mem_info[:used].as(Int64))
       result[:memory_usage] = "%.2f%%" % mem_info[:usage_pct].as(Float64)
+      swap_total = mem_info[:swap_total].as(Int64)
+      if swap_total > 0
+        result[:swap_total] = format_bytes(swap_total)
+        result[:swap_used] = format_bytes(mem_info[:swap_used].as(Int64))
+        result[:swap_usage] = "%.2f%%" % mem_info[:swap_usage_pct].as(Float64)
+      end
       result[:jane_version] = Jane::VERSION
       return result
     end

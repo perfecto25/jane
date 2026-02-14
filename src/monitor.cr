@@ -1,88 +1,163 @@
 require "tallboy"
-require "json"
-require "./info"
+require "colorize"
 require "./utils/*"
+require "./state"
+
+## monitor.cr — core monitoring structures and orchestration
 
 module Jane
   module Monitor
-    extend self
 
-    struct Check
+    # Represents the result of a single check
+    class Check
       include JSON::Serializable
-      property name : String
-      property status : Symbol
-      property current : String
-      property limit : String
-      property message : String
 
-      def initialize(@name, @status, @current, @limit, @message)
+      getter name : String
+      getter status : String         # "ok" or "alert"
+      getter current : String        # current measured value
+      getter threshold : String      # configured threshold / expected value
+      getter message : String        # human-readable explanation
+      getter tags : Array(String)
+      getter description : String?
+
+      def initialize(@name, status : Symbol, @current, @threshold, @message, @tags = [] of String, @description = nil)
+        @status = status.to_s
       end
 
-    end
-
-    def display_status(config : Config)
-      results = perform_checks(config)
-
-      alerts = results.select { |r| r.status == :alert }
-      ok = results.select { |r| r.status == :ok }
-
-      if alerts.any?
-        puts "\n\033[1;31m[ ALERTS ]\033[0m\n"
-        display_table(alerts, red: true)
+      def alert? : Bool
+        @status == "alert"
       end
 
-      if ok.any?
-        puts "\n\033[1;32m[ OK ]\033[0m\n"
-        display_table(ok)
+      def ok? : Bool
+        @status == "ok"
       end
 
-      puts "\nTotal Checks: #{results.size} | Alerts: #{alerts.size} | OK: #{ok.size}"
-    end
-
-    private def display_table(results : Array(Check), red : Bool = false)
-      table = Tallboy.table do
-        header ["Check", "Status", "Current", "Limit", "Message"]
-
-        results.each do |r|
-          status_symbol = r.status == :alert ? "✗" : "✓"
-          row [r.name, status_symbol, r.current, r.limit, r.message]
-        end
+      def to_s : String
+        icon = alert? ? "✖" : "✔"
+        "[#{icon}] #{@name}: #{@message} (current: #{@current}, threshold: #{@threshold})"
       end
+    end # Check
 
-      output = table.render
-      puts red ? "\033[31m#{output}\033[0m" : output
-    end
-
-
-    def perform_checks(config : Config) : Array(Check)
+    # ------------------------------------------------------------------
+    # perform_checks — iterates through all configured checks and
+    # collects Monitor::Check results. Each module follows the same
+    # contract:  def check_*(config) : Array(Monitor::Check)
+    # ------------------------------------------------------------------
+    def self.perform_checks(config : Config) : Array(Check)
       results = [] of Check
+      checks = config.check
 
-      # CPU checks
-      if cpu = config.check.cpu
-        results.concat(Cpu.check_cpu(cpu))
+      # --- CPU ---
+      if cpu_check = checks.cpu
+        cpu_results = Cpu.check_cpu(cpu_check)
+        cpu_results.each { |c| c.tags.concat(cpu_check.tags) }
+        results.concat cpu_results
       end
 
-      # Memory checks
-      if memory = config.check.memory
-        results.concat(Memory.check_memory(memory))
+      # --- Memory ---
+      if mem_check = checks.memory
+        mem_results = Memory.check_memory(mem_check)
+        mem_results.each { |c| c.tags.concat(mem_check.tags) }
+        results.concat mem_results
       end
 
-      # Filesystem checks
-      config.check.filesystems.each do |name, fs_check|
-        puts name
-        results.concat(Filesystem.check_filesystem(name, fs_check))
+      # --- Filesystems ---
+      checks.filesystems.each do |name, fs_check|
+        fs_results = Filesystem.check_filesystem(name, fs_check)
+        fs_results.each { |c| c.tags.concat(fs_check.tags) }
+        results.concat fs_results
       end
 
-      #  checks
-      config.check.network.interface.each do |name, iface_check|
-        puts name
-        results.concat(Network.check_iface(name, iface_check))
+      # --- Network: Interfaces ---
+      checks.network_interfaces.each do |name, iface_check|
+        iface_results = Network::Interface.check_iface(name, iface_check)
+        iface_results.each { |c| c.tags.concat(iface_check.tags) }
+        results.concat iface_results
       end
 
+      # --- Network: Connections ---
+      checks.network_connections.each do |name, conn_check|
+        conn_results = Network::Connection.check_connection(name, conn_check)
+        conn_results.each { |c| c.tags.concat(conn_check.tags) }
+        results.concat conn_results
+      end
 
-      return results
+      # --- Network: Bandwidth ---
+      cycle = config.defaults.cycle
+      checks.network_bandwidths.each do |name, bw_check|
+        bw_results = Network::Bandwidth.check_bandwidth(name, bw_check, cycle)
+        bw_results.each { |c| c.tags.concat(bw_check.tags) }
+        results.concat bw_results
+      end
+
+      # --- Processes ---
+      checks.processes.each do |name, proc_check|
+        proc_results = ProcessChecker.check_process(name, proc_check)
+        proc_results.each { |c| c.tags.concat(proc_check.tags) }
+        results.concat proc_results
+      end
+
+      # --- Files ---
+      checks.files.each do |name, file_check|
+        file_results = FileChecker.check_file(name, file_check)
+        file_results.each { |c| c.tags.concat(file_check.tags) }
+        results.concat file_results
+      end
+
+      results
     end # perform_checks
 
+    # ------------------------------------------------------------------
+    # display_status — runs checks and prints a table to stdout
+    # ------------------------------------------------------------------
+    def self.display_status(config : Config, config_path : String = "config.toml")
+      results = perform_checks(config)
+      unmonitored_tags = State.unmonitored_tags(config_path)
 
-  end # SystemMonitor
+      monitored = results.reject { |c| c.tags.any? { |t| unmonitored_tags.includes?(t) } }
+      unmonitored = results.select { |c| c.tags.any? { |t| unmonitored_tags.includes?(t) } }
+
+      sorted = monitored.sort_by { |c| c.alert? ? 0 : 1 }
+
+      table = Tallboy.table do
+        header ["Check", "Status", "Current", "Threshold", "Message", "Tags"]
+        sorted.each do |check|
+          tags_str = check.tags.empty? ? "" : check.tags.join(", ")
+          if check.alert?
+            row [check.name, check.status, check.current, check.threshold, check.message, tags_str].map { |v| v.colorize(:red).to_s }
+          else
+            row [check.name, check.status, check.current, check.threshold, check.message, tags_str]
+          end
+        end
+      end
+      puts table.render
+
+      alerts = monitored.select(&.alert?)
+      if alerts.any?
+        puts "\n#{"⚠  #{alerts.size} alert(s) detected".colorize(:yellow).bold}"
+      else
+        puts "\n✔  All checks passed"
+      end
+
+      if unmonitored.any?
+        puts "\n#{"Unmonitored Services".colorize(:dark_gray)}"
+        seen = Set(String).new
+        unmon_table = Tallboy.table do
+          header ["Check", "Tags"]
+          unmonitored.each do |check|
+            next if seen.includes?(check.name)
+            seen.add(check.name)
+            row [check.name, check.tags.join(", ")]
+          end
+        end
+        puts unmon_table.render
+      end
+    end
+
+    # Filters results to only those in alert state
+    def self.alerts(results : Array(Check)) : Array(Check)
+      results.select(&.alert?)
+    end
+
+  end # Monitor
 end # Jane
