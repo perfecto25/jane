@@ -9,7 +9,7 @@ host = "192.168.30.4"
 #port = 36777
 
 [defaults]
-cycle = 10
+cycle = 3
 alert.repeat = "yes" # repeat alert on each cycle
 alert.groups = "all" # alert all configured groups
 alert.users = "all"
@@ -50,11 +50,11 @@ path = "/tmp/testdir"
 name = "em1 iface"
 
 
-[check.network.connection.mars]
-name = "sample nc test"
-address = "mars"
-port = 22
-tag = "trading"
+#[check.network.connection.mars]
+##name = "sample nc test"
+#address = "mars"
+#port = 22
+#tag = "trading"
 
 [check.network.connection.phoebe]
 address = "192.168.40.23"

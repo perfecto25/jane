@@ -77,15 +77,14 @@ module Jane
 
       # --- Network: Connections ---
       checks.network_connections.each do |name, conn_check|
-        conn_results = Network::Connection.check_connection(name, conn_check)
+        conn_results = Network::Connection.check_connection(name, conn_check, config.defaults.cycle - 1)
         conn_results.each { |c| c.tags.concat(conn_check.tags) }
         results.concat conn_results
       end
 
       # --- Network: Bandwidth ---
-      cycle = config.defaults.cycle
       checks.network_bandwidths.each do |name, bw_check|
-        bw_results = Network::Bandwidth.check_bandwidth(name, bw_check, cycle)
+        bw_results = Network::Bandwidth.check_bandwidth(name, bw_check, config.defaults.cycle - 1)
         bw_results.each { |c| c.tags.concat(bw_check.tags) }
         results.concat bw_results
       end
@@ -104,7 +103,7 @@ module Jane
         results.concat file_results
       end
 
-      results
+      return results
     end # perform_checks
 
     # ------------------------------------------------------------------

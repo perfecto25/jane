@@ -21,7 +21,7 @@ module Jane
       result[:used] = used
       result[:available] = parts[3].to_i64
       result[:usage_pct] = (used.to_f64 / total.to_f64) * 100.0
-      result
+      return result
     rescue
       nil
     end

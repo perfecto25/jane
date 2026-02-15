@@ -87,15 +87,22 @@ module Jane
     module Connection
       extend self
 
-      def check_connection(name : String, conn_check : ConnectionCheck) : Array(Monitor::Check)
+      def check_connection(name : String, conn_check : ConnectionCheck, cycle : Int32) : Array(Monitor::Check)
         results = [] of Monitor::Check
 
         address = conn_check.address
         port = conn_check.port
 
         begin
-          sock = TCPSocket.new(address, port, connect_timeout: 5)
-          sock.close
+          # dns_timeout and connect_timeout are in seconds
+          sock = TCPSocket.new(
+            address,
+            port,
+            dns_timeout: cycle.seconds,
+            connect_timeout: cycle.seconds
+          )
+          sock.read_timeout = cycle.seconds    # raises IO::TimeoutError on read timeout
+          response = sock.gets
           status = :ok
           state = "open"
           msg = "Port #{port} is reachable"
@@ -103,7 +110,21 @@ module Jane
           status = :alert
           state = "closed"
           msg = "Cannot connect to #{address}:#{port} — #{ex.message}"
+        ensure
+          sock.try &.close
         end
+
+        # begin
+        #   sock = TCPSocket.new(address, port, connect_timeout: cycle, dns_timeout: cycle, tcp_keepalive_count: 3)
+        #   sock.close
+        #   status = :ok
+        #   state = "open"
+        #   msg = "Port #{port} is reachable"
+        # rescue  ex
+        #   status = :alert
+        #   state = "closed"
+        #   msg = "Cannot connect to #{address}:#{port} — #{ex.message}"
+        # end
 
         results << Monitor::Check.new(
           "Network Connection #{name}",
@@ -121,7 +142,6 @@ module Jane
 
     # ----------------------------------------------------------------
     # Network::Bandwidth — checks if bandwidth usage exceeds threshold
-    # (placeholder — to be implemented)
     # ----------------------------------------------------------------
     module Bandwidth
       extend self
@@ -216,7 +236,6 @@ module Jane
 
         results
       end # check_bandwidth
-
     end # Bandwidth
 
   end # Network

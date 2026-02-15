@@ -53,7 +53,7 @@ module Jane
         )
       end
 
-      results
+      return results
     end
 
     # Scans /proc/<pid>/cmdline for all numeric PIDs and yields the

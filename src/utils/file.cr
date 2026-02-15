@@ -72,7 +72,7 @@ module Jane
         )
       end
 
-      results
+      return results
     end
   end
 end
