@@ -16,6 +16,8 @@ module Jane
         return results
       end
 
+      p proc_check.match
+
       if match = proc_check.match
         is_regex = match.includes?(".*") || match.includes?(".+") ||
                    match.includes?("\\d") || match.includes?("\\w") ||

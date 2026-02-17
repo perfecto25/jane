@@ -3,7 +3,7 @@ require "toml"
 
 module Jane
   class Config
-    
+
     property log : LogConfig
     property check : CheckConfig
     property hq : HQConfig? | Nil
@@ -57,15 +57,17 @@ module Jane
   class HQConfig
     property host : String | Nil
     property port : Int32 | Nil
+    property enabled : Bool | Nil
 
-    def initialize(@host, @port)
+    def initialize(@host, @port, @enabled)
     end
 
     def self.from_toml(data : TOML::Any) : HQConfig
       host = data["host"]?.try(&.as_s?).to_s.strip
       host = "" if host.empty?
       port_val = data["port"]?.try(&.as_i?).try(&.to_i32) || 80_i32  # default port
-      new(host, port_val)
+      enabled = data["enabled"]?.try(&.as_bool) || false
+      new(host, port_val, enabled)
     end
   end
 

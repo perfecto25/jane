@@ -20,6 +20,11 @@ module Jane
         exit 1
       end
 
+      unless hq.enabled.not_nil!
+        logger.error("sending metrics to HQ is disabled in Jane config file.")
+        exit 1
+      end
+
       unless hq.host.not_nil!.presence && hq.port.not_nil!
         logger.error("Need to provide HQ hostname/IP and port when running Jane in daemon mode (see Jane config file), exiting..")
         exit 1
