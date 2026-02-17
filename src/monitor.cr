@@ -1,5 +1,6 @@
 require "tallboy"
 require "colorize"
+require "io"
 require "./utils/*"
 require "./state"
 
@@ -106,6 +107,30 @@ module Jane
       return results
     end # perform_checks
 
+
+    
+
+    # Collapses newlines and splits a string into chunks of at most `width`
+    # characters, breaking at word boundaries where possible.
+    def self.wrap_message(msg : String, width : Int32 = 80) : Array(String)
+      flat = msg.gsub('\n', ' ').gsub('\r', ' ').squeeze(' ').strip
+      return [flat] if flat.size <= width
+      chunks = [] of String
+      remaining = flat
+      while remaining.size > width
+        slice = remaining[0, width]
+        if (break_pos = slice.rindex(' '))
+          chunks << remaining[0, break_pos]
+          remaining = remaining[break_pos + 1..]
+        else
+          chunks << slice
+          remaining = remaining[width..]
+        end
+      end
+      chunks << remaining unless remaining.empty?
+      chunks
+    end
+
     # ------------------------------------------------------------------
     # display_status — runs checks and prints a table to stdout
     # ------------------------------------------------------------------
@@ -122,14 +147,51 @@ module Jane
         header ["Check", "Status", "Current", "Threshold", "Message", "Tags"]
         sorted.each do |check|
           tags_str = check.tags.empty? ? "" : check.tags.join(", ")
-          if check.alert?
-            row [check.name, check.status, check.current, check.threshold, check.message, tags_str].map { |v| v.colorize(:red).to_s }
-          else
-            row [check.name, check.status, check.current, check.threshold, check.message, tags_str]
+          msg_parts = Jane::Monitor.wrap_message(check.message)
+
+          # Plain text only inside cells — ANSI codes inflate Tallboy's column
+          # width calculation and misalign borders. Colors are post-processed.
+          # border: :bottom goes on the last row of each check so continuation
+          # rows are grouped together without a separator between them.
+          last = msg_parts.size - 1
+          row [check.name, check.status, check.current, check.threshold, msg_parts[0], tags_str],
+            border: last == 0 ? Tallboy::Border::Bottom : Tallboy::Border::None
+          msg_parts[1..].each_with_index do |part, i|
+            row ["", "", "", "", part, ""], border: i == last - 1 ? Tallboy::Border::Bottom : Tallboy::Border::None
           end
         end
       end
-      puts table.render
+
+      # Post-process the rendered table to apply colors:
+      #   • border/separator lines  → white
+      #   • │ column dividers       → white
+      #   • alert row content       → red  (carried through continuation rows)
+      #   • ok row content          → default
+      in_alert = false
+      table.render.to_s.split('\n').each do |line|
+        if line.starts_with?("│")
+          parts = line.split("│")
+          status    = parts[2]?.try(&.strip) || ""
+          check_col = parts[1]?.try(&.strip) || ""
+          if status == "alert"
+            in_alert = true
+          elsif status == "ok" || status == "Status"
+            in_alert = false
+          elsif check_col.empty? && status.empty?
+            # continuation row — preserve current in_alert state
+          else
+            in_alert = false
+          end
+          # Rebuild line: │ borders white, cell content red (alert) or default
+          colored = parts.map_with_index do |seg, i|
+            i == 0 ? seg : "│".to_s + (in_alert ? seg.colorize(:light_red).to_s : seg)
+          end.join("")
+          puts colored
+        else
+          # Separator / border line (├, ┌, └ …) — color white; don't touch in_alert
+          puts line.empty? ? line : line.to_s
+        end
+      end
 
       alerts = monitored.select(&.alert?)
       if alerts.any?
