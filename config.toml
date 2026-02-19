@@ -9,13 +9,19 @@ enabled = false
 host = "192.168.30.4"
 #port = 36777
 
+
 [defaults]
 cycle = 3
-alert.repeat = "yes" # repeat alert on each cycle
-alert.groups = "all" # alert all configured groups
-alert.users = "all"
-alert.grace.seconds = 60 # wait 60 seconds before sending another alert
 include.checks = "/tmp/*.toml"
+
+[alert]
+[alert.email]
+smtp.server = "myhost"
+smtp.port = 25
+send.to = "users@company.com"
+send.cc = "additional@company.com"
+
+
 
 [check]
 
@@ -79,6 +85,9 @@ pidfile = "/var/run/nginx.pid"
 
 [check.process.myapp]
 match = ".*myapp\\.sh"
+
+[check.process.zed]
+match = "*/share/zed*"
 
 [check.file.hosts]
 path = "/etc/hosts"

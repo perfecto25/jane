@@ -6,6 +6,7 @@ require "./logger"
 require "./monitor"
 require "./info"
 require "./state"
+require "./alert"
 
 module Jane
   module Daemon
@@ -15,21 +16,6 @@ module Jane
       logger = Logger.new(config.log)
       logger.info("Jane Agent starting...")
 
-      unless hq = config.hq
-        logger.error("No HQ configuration found in config file, exiting..")
-        exit 1
-      end
-
-      unless hq.enabled.not_nil!
-        logger.error("sending metrics to HQ is disabled in Jane config file.")
-        exit 1
-      end
-
-      unless hq.host.not_nil!.presence && hq.port.not_nil!
-        logger.error("Need to provide HQ hostname/IP and port when running Jane in daemon mode (see Jane config file), exiting..")
-        exit 1
-      end
-
       cycle = config.defaults.cycle
 
       unless cycle >= 2
@@ -37,12 +23,33 @@ module Jane
         exit 1
       end
 
+      hq = config.hq
+      hq_enabled = hq && hq.enabled
+
+      if hq_enabled
+        unless hq.not_nil!.host.not_nil!.presence && hq.not_nil!.port.not_nil!
+          logger.error("Need to provide HQ hostname/IP and port when running Jane in daemon mode (see Jane config file), exiting..")
+          exit 1
+        end
+        logger.info("HQ mode: sending metrics to #{hq.not_nil!.host}:#{hq.not_nil!.port}")
+        run_hq_loop(config, config_path, hq.not_nil!, cycle, logger)
+      else
+        logger.info("HQ is disabled — running in standalone alert mode")
+        alert_config = config.alert
+        email_config = alert_config.try(&.email)
+        unless email_config && !email_config.smtp_server.empty? && !email_config.send_to.empty?
+          logger.error("HQ is disabled but no valid [alert.email] config found (need smtp.server and send.to), exiting..")
+          exit 1
+        end
+        run_alert_loop(config, config_path, email_config, cycle, logger)
+      end
+    end
+
+    private def run_hq_loop(config : Config, config_path : String, hq : HQConfig, cycle : Int32, logger : Logger)
       loop do
         begin
-
           all_checks = Monitor.perform_checks(config)
           unmonitored_tags = State.unmonitored_tags(config_path)
-          puts unmonitored_tags
           filtered_checks = all_checks.reject { |c| c.tags.any? { |t| unmonitored_tags.includes?(t) } }
 
           config_toml = TOML.parse_file(config_path)
@@ -53,16 +60,35 @@ module Jane
             "metrics" => Info.get_metrics,
             "unmonitored" => unmonitored_tags,
             "config" => config_json,
-            }
+          }
 
           data = serialize_results(results)
-          puts data
-          #puts data
-  #        send_to_server(hq.host.not_nil!, hq.port.not_nil!, data, cycle, logger)
+          #send_to_server(hq.host.not_nil!, hq.port.not_nil!, data, cycle, logger)
           logger.info("Sent #{results.size} checks to server")
           sleep cycle.seconds
         rescue ex
           logger.error("Error in daemon loop: #{ex.message}")
+          sleep cycle.seconds
+        end
+      end
+    end
+
+    private def run_alert_loop(config : Config, config_path : String, email_config : AlertEmailConfig, cycle : Int32, logger : Logger)
+      alerter = Alerter.new(email_config, logger)
+      logger.info("Standalone alert mode: emails to #{email_config.send_to} via #{email_config.smtp_server}:#{email_config.smtp_port}")
+
+      loop do
+        begin
+          all_checks = Monitor.perform_checks(config)
+          unmonitored_tags = State.unmonitored_tags(config_path)
+          filtered_checks = all_checks.reject { |c| c.tags.any? { |t| unmonitored_tags.includes?(t) } }
+
+          alerter.process(filtered_checks)
+
+          logger.debug("Cycle complete: #{filtered_checks.size} checks evaluated")
+          sleep cycle.seconds
+        rescue ex
+          logger.error("Error in alert loop: #{ex.message}")
           sleep cycle.seconds
         end
       end

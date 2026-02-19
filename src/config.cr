@@ -8,8 +8,9 @@ module Jane
     property check : CheckConfig
     property hq : HQConfig? | Nil
     property defaults : DefaultsConfig
+    property alert : AlertConfig?
 
-    def initialize(@log, @check, @defaults, @hq = nil)
+    def initialize(@log, @check, @defaults, @hq = nil, @alert = nil)
     end
 
     def self.from_file(path : String) : Config
@@ -18,6 +19,7 @@ module Jane
       check = CheckConfig.from_toml(toml["check"])
       defaults = toml["defaults"]? ? DefaultsConfig.from_toml(toml["defaults"]) : DefaultsConfig.new
       hq = toml["hq"]? ? HQConfig.from_toml(toml["hq"]) : nil
+      alert = toml["alert"]? ? AlertConfig.from_toml(toml["alert"]) : nil
 
       # Process include.checks from defaults
       defaults.include_checks.each do |pattern|
@@ -35,7 +37,7 @@ module Jane
         end
       end
 
-      new(log, check, defaults, hq)
+      new(log, check, defaults, hq, alert)
     rescue ex
       abort "Error parsing config file: #{ex.message}"
     end
@@ -515,6 +517,36 @@ module Jane
       mode = data["mode"]?.try { |m| m.as_s? || m.as_i?.try(&.to_s) }
       tags = Jane.parse_tags(data)
       new(path, user, group, mode, tags)
+    end
+  end
+
+  class AlertEmailConfig
+    property smtp_server : String
+    property smtp_port : Int32
+    property send_to : String
+    property send_cc : String?
+
+    def initialize(@smtp_server, @smtp_port, @send_to, @send_cc = nil)
+    end
+
+    def self.from_toml(data : TOML::Any) : AlertEmailConfig
+      smtp_server = data["smtp"]?.try { |s| s["server"]?.try(&.as_s) } || ""
+      smtp_port = data["smtp"]?.try { |s| s["port"]?.try(&.as_i?).try(&.to_i32) } || 25
+      send_to = data["send"]?.try { |s| s["to"]?.try(&.as_s) } || ""
+      send_cc = data["send"]?.try { |s| s["cc"]?.try(&.as_s) }
+      new(smtp_server, smtp_port, send_to, send_cc)
+    end
+  end
+
+  class AlertConfig
+    property email : AlertEmailConfig?
+
+    def initialize(@email = nil)
+    end
+
+    def self.from_toml(data : TOML::Any) : AlertConfig
+      email = data["email"]? ? AlertEmailConfig.from_toml(data["email"]) : nil
+      new(email)
     end
   end
 

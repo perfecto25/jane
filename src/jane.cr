@@ -5,6 +5,7 @@ require "./monitor"
 require "./daemon"
 require "./logger"
 require "./state"
+require "./alert"
 
 module Jane
   VERSION = "0.1.0"
