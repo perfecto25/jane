@@ -8,7 +8,9 @@ require "./state"
 require "./alert"
 
 module Jane
-  VERSION = "0.1.0"
+  {% begin %}
+  VERSION = {{ `shards version "#{__DIR__}"`.chomp.stringify.downcase }}
+  {% end %}
 
   class CLI
     def self.run
