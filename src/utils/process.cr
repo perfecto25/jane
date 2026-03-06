@@ -11,6 +11,8 @@ module Jane
     def check_process(name : String, proc_check : ProcessCheck) : Array(Monitor::Check)
       results = [] of Monitor::Check
 
+      p proc_check
+
       if proc_check.match.nil? && proc_check.pidfile.nil?
         STDERR.puts "#{"⚠  Warning: check.process.#{name} has no 'match' or 'pidfile' defined, skipping".colorize(:yellow)}"
         return results
@@ -56,6 +58,24 @@ module Jane
       end
 
       return results
+    end
+
+    private def process_running_by_name?(name : String) : Bool
+      Dir.each_child("/proc") do |entry|
+        next unless entry.each_char.all? { |ch| ch.ascii_number? }  # only numeric pids
+
+        comm_path = "/proc/#{entry}/comm"
+        begin
+          # /proc/<pid>/comm contains the command name (truncated to 16 chars)
+          comm = File.read(comm_path).strip
+          return true if comm == name
+        rescue ex : Errno
+          # Process may have exited between listing /proc and reading comm; ignore
+          next
+        end
+      end
+
+      false
     end
 
     # Scans /proc/<pid>/cmdline for all numeric PIDs and yields the
