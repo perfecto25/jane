@@ -78,9 +78,12 @@ address = "atlas"
 limit.mbps = 20
 tag = ["trading", "network"]
 
-[check.process.docker]
-bin = "docker"
-#match = "/usr/bin/docker"
+[check.process.slack]
+#bin = "docker"
+match = "/usr/bin/slack"
+
+[check.process.gvfsd]
+match = "*/usr/libexec/gvfsd-http --spawner *"
 
 [check.process.nginx]
 pidfile = "/var/run/nginx.pid"

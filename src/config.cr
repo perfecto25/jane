@@ -498,7 +498,7 @@ module Jane
       match = data["match"]?.try(&.as_s)
       pidfile = data["pidfile"]?.try(&.as_s)
       tags = Jane.parse_tags(data)
-      puts "PROCESS CHECK bin = #{bin}"
+      #puts "PROCESS CHECK bin = #{bin}"
       new(name, bin, match, pidfile, tags)
     end
   end

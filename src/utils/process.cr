@@ -1,6 +1,7 @@
 require "colorize"
 require "../monitor"
 require "../config"
+require "../logger"
 
 ## process.cr — checks whether specific processes are running
 
@@ -8,17 +9,41 @@ module Jane
   module ProcessChecker
     extend self
 
+
+    def binary_running?(binary : String) : Bool
+      status = Process.run("pgrep", {binary}, output: Process::Redirect::Close, error: Process::Redirect::Close)
+      status.success?
+    rescue IO::Error
+      # pgrep not found or failed to execute
+      false
+    end
+
     def check_process(name : String, proc_check : ProcessCheck) : Array(Monitor::Check)
       results = [] of Monitor::Check
 
       p proc_check
 
-      if proc_check.match.nil? && proc_check.pidfile.nil?
-        STDERR.puts "#{"⚠  Warning: check.process.#{name} has no 'match' or 'pidfile' defined, skipping".colorize(:yellow)}"
+      if proc_check.match.nil? && proc_check.pidfile.nil? && proc_check.bin.nil?
+        STDERR.puts "#{"⚠  Warning: check.process.#{name} has no 'match' or 'bin' or 'pidfile' defined, skipping".colorize(:yellow)}"
+          #STDERR.puts
         return results
       end
 
       p proc_check.match
+
+
+      if binary = proc_check.bin
+      # check if proc is running by searching a binary-name
+        found = binary_running?(binary)
+        results << Monitor::Check.new(
+          name: "Process #{name}",
+          status: found ? :ok : :alert,
+          current: found ? "running" : "not found",
+          threshold: "running",
+          message: found ? "Process '#{binary}' is running" : "Process '#{binary}' not found",
+          description: proc_check.name
+        )
+      end
 
       if match = proc_check.match
         is_regex = match.includes?(".*") || match.includes?(".+") ||

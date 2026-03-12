@@ -3,6 +3,7 @@ require "colorize"
 require "io"
 require "./utils/*"
 require "./state"
+require "./logger"
 
 ## monitor.cr — core monitoring structures and orchestration
 
@@ -108,7 +109,7 @@ module Jane
     end # perform_checks
 
 
-    
+
 
     # Collapses newlines and splits a string into chunks of at most `width`
     # characters, breaking at word boundaries where possible.
