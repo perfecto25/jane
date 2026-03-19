@@ -23,6 +23,11 @@ module Jane
 
       p proc_check
 
+
+      if proc_check.bin && proc_check.match && proc_check.pidfile
+        raise "Cannot have multiple process declarations"
+      end
+
       if proc_check.match.nil? && proc_check.pidfile.nil? && proc_check.bin.nil?
         STDERR.puts "#{"⚠  Warning: check.process.#{name} has no 'match' or 'bin' or 'pidfile' defined, skipping".colorize(:yellow)}"
           #STDERR.puts
@@ -30,7 +35,6 @@ module Jane
       end
 
       p proc_check.match
-
 
       if binary = proc_check.bin
       # check if proc is running by searching a binary-name
@@ -43,6 +47,7 @@ module Jane
           message: found ? "Process '#{binary}' is running" : "Process '#{binary}' not found",
           description: proc_check.name
         )
+        return results
       end
 
       if match = proc_check.match
@@ -68,6 +73,7 @@ module Jane
           message: found ? "Process matching '#{match}' is running" : "Process matching '#{match}' not found",
           description: proc_check.name
         )
+        return results
       end
 
       if pidfile = proc_check.pidfile
@@ -80,8 +86,8 @@ module Jane
           message: found ? "PID from '#{pidfile}' is running" : "PID from '#{pidfile}' not found or pidfile missing",
           description: proc_check.name
         )
+        return results
       end
-
       return results
     end
 

@@ -83,7 +83,9 @@ tag = ["trading", "network"]
 match = "/usr/bin/slack"
 
 [check.process.gvfsd]
-match = "*/usr/libexec/gvfsd-http --spawner *"
+match = "/usr/libexec/gvfsd"
+bin = "gvfsd"
+#pidfile = "ddd"
 
 [check.process.nginx]
 pidfile = "/var/run/nginx.pid"
