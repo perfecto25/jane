@@ -20,6 +20,7 @@ smtp.server = "myhost"
 smtp.port = 25
 send.to = "users@company.com"
 send.cc = "additional@company.com"
+send.from = "jane@company.com"
 
 
 
@@ -44,7 +45,8 @@ alert.exec = "systemctl status NetworkManager"
 
 [check.filesystem.home]
 path = "/home"
-usage.gb = [145,146,200]
+usage.pct = [80,84,90]
+#usage.gb = [145,146,200]
 
 [check.filesystem.root]
 path = "/"
@@ -76,9 +78,14 @@ address = "atlas"
 limit.mbps = 20
 tag = ["trading", "network"]
 
-[check.process.docker]
-name = "check if docker is running"
-match = "/usr/bin/docker"
+[check.process.slack]
+#bin = "docker"
+match = "/usr/bin/slack"
+
+[check.process.gvfsd]
+match = "/usr/libexec/gvfsd"
+bin = "gvfsd"
+#pidfile = "ddd"
 
 [check.process.nginx]
 pidfile = "/var/run/nginx.pid"
@@ -87,7 +94,13 @@ pidfile = "/var/run/nginx.pid"
 match = ".*myapp\\.sh"
 
 [check.process.zed]
-match = "*/share/zed*"
+bin = "zed-editor"  # binary name to search
+#match = "*zed-editor*"
+
+[check.process.sshd]
+match = "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+#match = "*/usr/sbin/sshd*"
+tag = "process"
 
 [check.file.hosts]
 path = "/etc/hosts"

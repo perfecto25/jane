@@ -81,6 +81,5 @@ module Jane
       return results
     end # check_filesystem
 
-
   end # Filesystem
 end # Jane

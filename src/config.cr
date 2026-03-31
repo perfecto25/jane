@@ -484,19 +484,22 @@ module Jane
 
   class ProcessCheck
     property name : String?
+    property bin : String?
     property match : String?
     property pidfile : String?
     property tags : Array(String)
 
-    def initialize(@name, @match, @pidfile, @tags = [] of String)
+    def initialize(@name, @bin, @match, @pidfile, @tags = [] of String)
     end
 
     def self.from_toml(data : TOML::Any) : ProcessCheck
       name = data["name"]?.try(&.as_s)
+      bin = data["bin"]?.try(&.as_s)
       match = data["match"]?.try(&.as_s)
       pidfile = data["pidfile"]?.try(&.as_s)
       tags = Jane.parse_tags(data)
-      new(name, match, pidfile, tags)
+      #puts "PROCESS CHECK bin = #{bin}"
+      new(name, bin, match, pidfile, tags)
     end
   end
 
