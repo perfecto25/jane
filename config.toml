@@ -5,9 +5,9 @@ file = "some.log"
 level = "debug"
 
 [hq]
-enabled = false
-host = "192.168.30.4"
-#port = 36777
+enabled = true
+host = "localhost"
+port = 5000
 
 
 [defaults]
@@ -107,6 +107,14 @@ path = "/etc/hosts"
 user = "root"
 group = "root"
 mode = "7550"
+
+[check.file.opt]
+path = "/opt"
+user = "root"
+group = "mreider"
+mode = "400"
+
+
 
 [check.file.nonexistent]
 path = "/opt/fakefile"

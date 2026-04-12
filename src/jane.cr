@@ -6,6 +6,7 @@ require "./daemon"
 require "./logger"
 require "./state"
 require "./alert"
+require "./generate"
 
 module Jane
   {% begin %}
@@ -44,6 +45,7 @@ module Jane
         parser.on("-i", "--info", "Show system information") { mode = :info }
         parser.on("-s", "--status", "Show system status vs config") { mode = :status }
         parser.on("-d", "--daemon", "Run as daemon") { mode = :daemon }
+        parser.on("-g", "--generate", "Generate a config file") { mode = :generate }
         parser.on("-c FILE", "--config=FILE", "Config file path (default: config.toml)") { |f| config_path = f }
         parser.on("-h", "--help", "Show help") { mode = :help }
         parser.on("-v", "--version", "Show version") do
@@ -61,11 +63,14 @@ module Jane
       when :daemon
         config = Config.from_file(config_path)
         Daemon.run(config, config_path)
+      when :generate
+        Generate.make_config
       when :help
         puts "Usage: jane [options]"
         puts "  -i, --info              Show system information"
         puts "  -s, --status            Show system status vs config"
         puts "  -d, --daemon            Run as daemon"
+        puts "  -g, --generate          generate a config file"
         puts "  -c, --config FILE       Config file path (default: config.toml)"
         puts "  -h, --help              Show help"
         puts "  -v, --version           Show version"

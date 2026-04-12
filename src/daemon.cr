@@ -16,7 +16,7 @@ module Jane
       logger = Logger.new(config.log)
       logger.info("Jane Agent starting...")
 
-      cycle = config.defaults.cycle
+      cycle = config.defaults.cycle || 5
 
       unless cycle >= 2
         logger.error("Jane cycle time cannot be less than 2 seconds")
@@ -63,7 +63,8 @@ module Jane
           }
 
           data = serialize_results(results)
-          #send_to_server(hq.host.not_nil!, hq.port.not_nil!, data, cycle, logger)
+          #logger.info(data.to_s)
+          send_to_server(hq.host.not_nil!, hq.port.not_nil!, data, cycle, logger)
           logger.info("Sent #{results.size} checks to server")
           sleep cycle.seconds
         rescue ex
@@ -76,7 +77,7 @@ module Jane
     private def run_alert_loop(config : Config, config_path : String, email_config : AlertEmailConfig, cycle : Int32, logger : Logger)
       alerter = Alerter.new(email_config, logger)
       logger.info("Standalone alert mode: emails to #{email_config.send_to} via #{email_config.smtp_server}:#{email_config.smtp_port}")
-
+      puts "run_alert_loop"
       loop do
         begin
           all_checks = Monitor.perform_checks(config)
@@ -110,7 +111,7 @@ module Jane
       #     "timestamp" => Time.utc.to_unix
       #   }
       # end
-      puts data
+#      puts data
       data.to_msgpack
     end
 
@@ -149,13 +150,25 @@ module Jane
     end
 
     private def send_to_server(host : String, port : Int32, data : Bytes, cycle : Int32, logger : Logger)
+      #logger.warn(data.to_s)
       logger.debug("sending to #{host}, #{port}")
-      socket = TCPSocket.new(host.not_nil!, port.not_nil!, connect_timeout: cycle.seconds)
+      socket = TCPSocket.new(host.not_nil!, port.not_nil!, connect_timeout: cycle.seconds).not_nil!
 
+      write_data = data.not_nil!
       # Send length prefix
-      size_bytes = IO::ByteFormat::BigEndian.encode(data.size.to_u32, Bytes.new(4))
-      socket.write(size_bytes.not_nil!)
-      socket.write(data)
+      # begin
+      #   size_bytes = IO::ByteFormat::BigEndian.encode(data.size.to_u32, Bytes.new(4))
+      #   logger.debug(size_bytes.to_s)
+      # rescue
+      #   logger.error("sizebytes")
+      # end
+
+      # begin
+      #   socket.write(size_bytes.not_nil!)
+      # rescue 
+      #   logger.error("socket write")
+      # end
+      socket.write(write_data)
       socket.flush
       socket.close
     rescue ex
