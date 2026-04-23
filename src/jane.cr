@@ -6,7 +6,7 @@ require "./daemon"
 require "./logger"
 require "./state"
 require "./alert"
-require "./generate"
+require "./utils/generate"
 
 module Jane
   {% begin %}

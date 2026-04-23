@@ -5,7 +5,7 @@ file = "some.log"
 level = "debug"
 
 [hq]
-enabled = true
+enabled = false
 host = "localhost"
 port = 5000
 
@@ -16,12 +16,16 @@ include.checks = "/tmp/*.toml"
 
 [alert]
 [alert.email]
+enabled = true
 smtp.server = "myhost"
 smtp.port = 25
 send.to = "users@company.com"
 send.cc = "additional@company.com"
 send.from = "jane@company.com"
 
+[alert.slack]
+enabled = false 
+webhook.url = "xxxyyyzzz"
 
 
 [check]

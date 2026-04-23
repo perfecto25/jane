@@ -8,6 +8,37 @@ module Jane
   module Filesystem
     extend self
 
+    struct MountEntry
+      getter device : String
+      getter mount_point : String
+      getter fs_type : String
+      getter options : String
+
+      def initialize(@device : String, @mount_point : String, @fs_type : String, @options : String)
+      end
+    end
+
+    def show_filesystems
+
+      mounts = [] of MountEntry
+
+      File.each_line("/proc/self/mounts") do |line|
+        fields = line.split(' ')
+        next if fields.size < 4
+
+        device = fields[0].gsub("\\040", " ")
+        mount_point = fields[1].gsub("\\040", " ")
+        fs_type = fields[2]
+        options = fields[3]
+
+        mounts << MountEntry.new(device, mount_point, fs_type, options)
+      end
+
+      mounts.each do |m|
+        puts "#{m.device} mounted on #{m.mount_point} (#{m.fs_type})"
+      end
+    end # show_filesystems
+
     private def get_filesystem_usage(path : String) : Hash(Symbol, Int64 | Float64)?
       output = `df -B1 #{path} 2>/dev/null`.lines
       return nil if output.size < 2

@@ -1,3 +1,5 @@
+require "./filesystem"
+
 module Jane
   module Generate
     extend self
