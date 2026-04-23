@@ -52,7 +52,7 @@ module Jane
           unmonitored_tags = State.unmonitored_tags(config_path)
           filtered_checks = all_checks.reject { |c| c.tags.any? { |t| unmonitored_tags.includes?(t) } }
 
-          config_toml = TOML.parse_file(config_path)
+          config_toml = TOML.parse_file(config_path)config_toml
           config_json = JSON.parse(toml_to_json(config_toml))
 
           results = {

@@ -27,19 +27,32 @@ TODO: Write installation instructions here
 
 ## Usage
 
-TODO: Write usage instructions here
+### Alerting
+
+Jane has 3 main methods of alerting. 
+
+- direct email
+- HQ
+- slack
+
+Jane will alert on any issues depending on how alerting is setup in config.toml
+
+if HQ is enabled, it will alert to your HQ endpoint
+
+only HQ or alert.email can be enabled at once, if both are enabled, Jane will send to HQ only.
+
+alert.slack can be enabled with any other method - and will fire off a slack message regardless of other alerting methods.
 
 ## Roadmap
 
-- add additional utils (network, process)
-- ability to send alerts from agent via smtp host
+- add additional utils (network, process) (done)
+- ability to send alerts from agent via smtp host (done)
+- add Slack alert functionality
 
-
-TODO: Write development instructions here
 
 ## Contributing
 
-1. Fork it (<https://github.com/your-github-user/jane/fork>)
+1. Fork it (<https://github.com/perfecto25/jane/fork>)
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
