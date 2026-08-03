@@ -7,7 +7,7 @@ level = "debug"
 [hq]
 enabled = true
 host = "localhost"
-port = 5000
+port = 25900
 
 
 [defaults]
@@ -88,7 +88,7 @@ match = "/usr/bin/slack"
 
 [check.process.gvfsd]
 match = "/usr/libexec/gvfsd"
-bin = "gvfsd"
+#bin = "gvfsd"
 #pidfile = "ddd"
 
 [check.process.nginx]
@@ -102,7 +102,7 @@ bin = "zed-editor"  # binary name to search
 #match = "*zed-editor*"
 
 [check.process.sshd]
-match = "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+match = "sshd: /usr/sbin/sshd -D [listener]"
 #match = "*/usr/sbin/sshd*"
 tag = "process"
 

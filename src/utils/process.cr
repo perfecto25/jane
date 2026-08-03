@@ -21,11 +21,9 @@ module Jane
     def check_process(name : String, proc_check : ProcessCheck) : Array(Monitor::Check)
       results = [] of Monitor::Check
 
-      p proc_check
-
-
-      if proc_check.bin && proc_check.match && proc_check.pidfile
-        raise "Cannot have multiple process declarations"
+      declared = [proc_check.bin, proc_check.match, proc_check.pidfile].count { |v| !v.nil? }
+      if declared > 1
+        raise "check.process.#{name}: cannot have multiple process declarations ('bin', 'match', 'pidfile')"
       end
 
       if proc_check.match.nil? && proc_check.pidfile.nil? && proc_check.bin.nil?
@@ -33,8 +31,6 @@ module Jane
           #STDERR.puts
         return results
       end
-
-      p proc_check.match
 
       if binary = proc_check.bin
       # check if proc is running by searching a binary-name
@@ -51,19 +47,8 @@ module Jane
       end
 
       if match = proc_check.match
-        is_regex = match.includes?(".*") || match.includes?(".+") ||
-                   match.includes?("\\d") || match.includes?("\\w") ||
-                   match.includes?("[") || match.includes?("(") ||
-                   match.includes?("{") || match.includes?("|") ||
-                   match.includes?("^") || match.includes?("$") ||
-                   match.ends_with?("+") || match.ends_with?("?")
-
-        if is_regex
-          pattern = Regex.new(match)
-          found = scan_proc_cmdline { |cmdline| pattern.matches?(cmdline) }
-        else
-          found = scan_proc_cmdline { |cmdline| cmdline.includes?(match) }
-        end
+        matchers = build_cmdline_matchers(match)
+        found = scan_proc_cmdline { |cmdline| matchers.any? { |m| m.call(cmdline) } }
 
         results << Monitor::Check.new(
           name: "Process #{name}",
@@ -107,6 +92,32 @@ module Jane
       end
 
       false
+    end
+
+    # Builds every interpretation of a `match` pattern: literal substring,
+    # shell-style glob (* and ?), and regex. A cmdline that satisfies any of
+    # them counts as a hit, so a config never has to declare which flavor it
+    # meant — a proctitle like "sshd: ... [listener] ..." works as a literal
+    # even though it also parses as a (non-matching) regex.
+    private def build_cmdline_matchers(match : String) : Array(Proc(String, Bool))
+      matchers = [] of Proc(String, Bool)
+
+      matchers << ->(cmdline : String) { cmdline.includes?(match) }
+
+      if match.includes?('*') || match.includes?('?')
+        glob = Regex.new("^" + Regex.escape(match).gsub("\\*", ".*").gsub("\\?", ".") + "$")
+        matchers << ->(cmdline : String) { glob.matches?(cmdline) }
+      end
+
+      begin
+        pattern = Regex.new(match)
+        matchers << ->(cmdline : String) { pattern.matches?(cmdline) }
+      rescue ArgumentError
+        # Not a valid regex (e.g. a leading '*' from a glob); other
+        # interpretations still apply.
+      end
+
+      matchers
     end
 
     # Scans /proc/<pid>/cmdline for all numeric PIDs and yields the

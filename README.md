@@ -25,6 +25,12 @@ Checks show whether configured thresholds are over the limit and issue alerts
 
 TODO: Write installation instructions here
 
+install prereqs
+
+dnf install pcre2-devel
+
+
+
 ## Usage
 
 ### Alerting
