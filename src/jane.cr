@@ -19,9 +19,12 @@ module Jane
       config_path = "config.toml"
 
       # Check for positional subcommands before option parsing
-      if ARGV.size >= 2 && (ARGV[0] == "unmonitor" || ARGV[0] == "monitor")
+      if ARGV[0]? == "unmonitor" || ARGV[0]? == "monitor"
         subcommand = ARGV[0]
-        tag = ARGV[1]
+        # Tag list is optional; if omitted (or next arg is a flag), apply to all tags
+        tag = ARGV[1]?
+        tag = nil if tag && tag.starts_with?("-")
+
         # Allow -c flag after subcommand args
         config_path_idx = ARGV.index("-c") || ARGV.index("--config")
         if config_path_idx && config_path_idx + 1 < ARGV.size
@@ -81,8 +84,16 @@ module Jane
       end
     end
 
-    def self.handle_unmonitor(config : Config, config_path : String, tag_arg : String)
-      input_tags = tag_arg.split(",").map(&.strip).reject(&.empty?)
+    def self.parse_tag_arg(tag_arg : String) : Array(String)
+      tag_arg.split(",").map(&.strip).reject(&.empty?)
+    end
+
+    def self.handle_unmonitor(config : Config, config_path : String, tag_arg : String?)
+      input_tags = tag_arg ? parse_tag_arg(tag_arg) : all_tags(config)
+      if input_tags.empty?
+        puts "No tags found in config"
+        return
+      end
       unmonitored = State.unmonitored_tags(config_path)
       all_matching = [] of String
       added_tags = [] of String
@@ -106,12 +117,21 @@ module Jane
 
       puts "These services will be unmonitored:"
       all_matching.uniq.each { |name| puts "  - #{name}" }
-      puts "\nTo monitor them again, run: jane monitor #{input_tags.join(",")}"
+      if tag_arg
+        puts "\nTo monitor them again, run: jane monitor #{input_tags.join(",")}"
+      else
+        puts "\nTo monitor them again, run: jane monitor"
+      end
     end
 
-    def self.handle_monitor(config : Config, config_path : String, tag_arg : String)
-      input_tags = tag_arg.split(",").map(&.strip).reject(&.empty?)
+    def self.handle_monitor(config : Config, config_path : String, tag_arg : String?)
       unmonitored = State.unmonitored_tags(config_path)
+      # With no tag given, re-monitor everything currently unmonitored
+      input_tags = tag_arg ? parse_tag_arg(tag_arg) : unmonitored.dup
+      if input_tags.empty?
+        puts "All checks are already monitored"
+        return
+      end
       all_matching = [] of String
       removed_any = false
 
@@ -130,6 +150,20 @@ module Jane
         puts "These services are now monitored:"
         all_matching.uniq.each { |name| puts "  - #{name}" }
       end
+    end
+
+    def self.all_tags(config : Config) : Array(String)
+      tags = [] of String
+      checks = config.check
+      checks.cpu.try { |c| tags.concat(c.tags) }
+      checks.memory.try { |m| tags.concat(m.tags) }
+      checks.filesystems.each_value { |c| tags.concat(c.tags) }
+      checks.network_interfaces.each_value { |c| tags.concat(c.tags) }
+      checks.network_connections.each_value { |c| tags.concat(c.tags) }
+      checks.network_bandwidths.each_value { |c| tags.concat(c.tags) }
+      checks.processes.each_value { |c| tags.concat(c.tags) }
+      checks.files.each_value { |c| tags.concat(c.tags) }
+      tags.uniq
     end
 
     def self.find_checks_with_tag(config : Config, tag : String) : Array(String)

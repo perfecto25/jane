@@ -11,7 +11,7 @@ port = 25900
 
 
 [defaults]
-cycle = 3
+cycle = 10
 include.checks = "/tmp/*.toml"
 
 [alert]
@@ -61,7 +61,7 @@ path = "/tmp/testdir"
 
 [check.network.interface.em1]
 name = "em1 iface"
-
+tag = "network"
 
 #[check.network.connection.mars]
 ##name = "sample nc test"
@@ -85,7 +85,7 @@ tag = ["trading", "network"]
 [check.process.slack]
 #bin = "docker"
 match = "/usr/bin/slack"
-
+tag = "slack"
 [check.process.gvfsd]
 match = "/usr/libexec/gvfsd"
 #bin = "gvfsd"
