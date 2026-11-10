@@ -1,13 +1,14 @@
-# Jane Agent
 
-*Plain Jane!*
 
-Fresh, organic, farm to table metrics and events.
 
-## Description
 
-<img src="logo.png" alt="jane" width="150">
 
+
+# <img src="logo.png" alt="jane" width="150">
+
+*Plain Jane - Fresh, organic, farm to table metrics and events.
+
+---
 
 Jane is a lightweight sytem and process monitoring software. It is inspired by Tildeslash Monit and uses the same philosophy to report on a system's metrics and observability.
 
