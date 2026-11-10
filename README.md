@@ -1,5 +1,7 @@
 # Jane Agent
 
+*Plain Jane!*
+
 Fresh, organic, farm to table metrics and events.
 
 ## Description
@@ -21,33 +23,8 @@ Checks show whether configured thresholds are over the limit and issue alerts
 
 ---
 
-## Installation
+For installation and usage, see DOCS
 
-TODO: Write installation instructions here
-
-install prereqs
-
-dnf install pcre2-devel
-
-
-
-## Usage
-
-### Alerting
-
-Jane has 3 main methods of alerting. 
-
-- direct email
-- HQ
-- slack
-
-Jane will alert on any issues depending on how alerting is setup in config.toml
-
-if HQ is enabled, it will alert to your HQ endpoint
-
-only HQ or alert.email can be enabled at once, if both are enabled, Jane will send to HQ only.
-
-alert.slack can be enabled with any other method - and will fire off a slack message regardless of other alerting methods.
 
 ## Roadmap
 

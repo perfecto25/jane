@@ -1,6 +1,6 @@
 require "tallboy"
 require "json"
-require "./jane"
+require "./version"
 require "./utils/*"
 
 module Jane
@@ -11,7 +11,7 @@ module Jane
       info = gather_info
 
       table = Tallboy.table do
-        header ["Property", "Value"]
+        header ["Jane agent", info[:jane_version]]
 
         row ["Hostname", info[:hostname]]
         row ["OS", info[:os]]
@@ -27,7 +27,7 @@ module Jane
         if info[:swap_total]? && info[:swap_total] != "0.00 B"
           row ["Swap", "#{info[:swap_used]} / #{info[:swap_total]} (#{info[:swap_usage]})"]
         end
-        row ["Jane agent version", info[:jane_version]]
+        
       end
       puts table.render
     end

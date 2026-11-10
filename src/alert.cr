@@ -8,23 +8,30 @@ module Jane
     # Tracks the previous alert state of each check by name.
     # Only sends an email when a check transitions from ok -> alert.
     @previous_states : Hash(String, String)
+    @previous_levels : Hash(String, Int32)
     @logger : Logger
 
     def initialize(@email_config : AlertEmailConfig, @logger : Logger)
       @previous_states = Hash(String, String).new
+      @previous_levels = Hash(String, Int32).new
     end
 
     # Process a batch of check results. Sends alert emails for any check
-    # that has just entered the alert state (was not alert on the previous cycle).
+    # that has just entered the alert state (was not alert on the previous
+    # cycle), or climbed to a higher threshold level.
     def process(checks : Array(Monitor::Check))
       newly_alerted = [] of Monitor::Check
 
       checks.each do |check|
         prev = @previous_states[check.name]?
-        if check.alert? && prev != "alert"
+        # A multi-level check also alerts again when it climbs to a higher
+        # level (e.g. memory > 80% → > 90%).
+        escalated = prev == "alert" && check.alert? && check.level > (@previous_levels[check.name]? || 0)
+        if check.alert? && (prev != "alert" || escalated)
           newly_alerted << check
         end
         @previous_states[check.name] = check.status
+        @previous_levels[check.name] = check.level
       end
 
       if newly_alerted.any?

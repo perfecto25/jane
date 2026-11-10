@@ -1,3 +1,8 @@
+require "socket"
+require "http/client"
+require "openssl"
+require "../version"
+require "./tls"
 require "json"
 require "../info"
 require "../monitor"
@@ -87,55 +92,137 @@ module Jane
     module Connection
       extend self
 
-      def check_connection(name : String, conn_check : ConnectionCheck, cycle : Int32) : Array(Monitor::Check)
-        results = [] of Monitor::Check
+      record ProbeResult, ok : Bool, current : String, message : String
 
-        address = conn_check.address
-        port = conn_check.port
+      MAX_BODY = 1024 * 1024
 
-        begin
-          # dns_timeout and connect_timeout are in seconds
-          sock = TCPSocket.new(
-            address,
-            port,
-            dns_timeout: cycle.seconds,
-            connect_timeout: cycle.seconds
-          )
-          sock.read_timeout = cycle.seconds    # raises IO::TimeoutError on read timeout
-          response = sock.gets
-          status = :ok
-          state = "open"
-          msg = "Port #{port} is reachable"
-        rescue ex
-          status = :alert
-          state = "closed"
-          msg = "Cannot connect to #{address}:#{port} — #{ex.message}"
-        ensure
-          sock.try &.close
+      # Opens a TCP connection. With `expect`, also reads the first line the
+      # server sends and requires it to match (e.g. "^SSH-"); without it,
+      # completing the handshake is enough (HTTP, databases, ...).
+      # Returns {ok, message}.
+      def port_check(address : String, port : Int32, timeout : Int32, expect : Regex? = nil) : Tuple(Bool, String)
+        r = probe(PortProbe.new(address, port, expect), timeout)
+        {r.ok, r.message}
+      end
+
+      # Runs a port test: TCP connect, optional TLS (with certificate expiry),
+      # then an HTTP request or an `expect` banner check. Every configured
+      # condition must hold.
+      def probe(p : PortProbe, default_timeout : Int32) : ProbeResult
+        timeout = Math.max(p.timeout || default_timeout, 1).seconds
+        target = "#{p.address}:#{p.port}"
+        tcp = TCPSocket.new(p.address, p.port, dns_timeout: timeout, connect_timeout: timeout)
+        tcp.read_timeout = timeout
+        tcp.write_timeout = timeout
+        io = tcp.as(IO)
+        cert_note = nil
+
+        if p.ssl
+          tls = tls_connect(tcp, p)
+          io = tls
+          if op = p.cert_op
+            cert = tls.peer_certificate
+            return ProbeResult.new(false, "no certificate", "#{target} sent no certificate") unless cert
+            days = TLSInfo.days_left(cert)
+            expires = (Time.utc + days.days).to_s("%Y-%m-%d")
+            cert_note = "cert #{days.floor.to_i}d"
+            unless Jane.compare(days, op, p.cert_days)
+              return ProbeResult.new(false, cert_note,
+                "Certificate of #{target} (#{TLSInfo.subject(cert)}) expires in #{days.floor.to_i} days (#{expires}), " \
+                "required: valid #{Jane.op_symbol(op)} #{Jane.trim_float(p.cert_days)} days")
+            end
+          end
         end
 
-        # begin
-        #   sock = TCPSocket.new(address, port, connect_timeout: cycle, dns_timeout: cycle, tcp_keepalive_count: 3)
-        #   sock.close
-        #   status = :ok
-        #   state = "open"
-        #   msg = "Port #{port} is reachable"
-        # rescue  ex
-        #   status = :alert
-        #   state = "closed"
-        #   msg = "Cannot connect to #{address}:#{port} — #{ex.message}"
-        # end
+        if p.http
+          ok, current, message = http_request(io, p)
+          current = "#{current}, #{cert_note}" if cert_note
+          return ProbeResult.new(ok, current, ok ? "#{p.protocol_name.upcase} #{target}#{p.request}: #{message}" : message)
+        end
 
-        results << Monitor::Check.new(
+        if pattern = p.expect
+          line = (io.gets || "").strip
+          unless pattern.matches?(line)
+            return ProbeResult.new(false, "unexpected", "#{target} answered #{line[0, 80].inspect}, expected #{pattern.source.inspect}")
+          end
+        end
+        ProbeResult.new(true, cert_note ? "open, #{cert_note}" : "open", "Port #{p.port} is reachable")
+      rescue ex : OpenSSL::SSL::Error
+        ProbeResult.new(false, "tls error", "TLS handshake with #{p.address}:#{p.port} failed — #{ex.message}")
+      rescue ex : IO::TimeoutError
+        ProbeResult.new(false, "timeout", "#{p.address}:#{p.port} timed out — #{ex.message}")
+      rescue ex
+        ProbeResult.new(false, "closed", "Cannot connect to #{p.address}:#{p.port} — #{ex.message}")
+      ensure
+        io.try &.close rescue nil
+        tcp.try &.close rescue nil
+      end
+
+      private def tls_connect(tcp : TCPSocket, p : PortProbe) : OpenSSL::SSL::Socket::Client
+        ctx = OpenSSL::SSL::Context::Client.new
+        ctx.verify_mode = p.verify ? OpenSSL::SSL::VerifyMode::PEER : OpenSSL::SSL::VerifyMode::NONE
+        name = p.host_header || p.address
+        # SNI and hostname verification need a name, not an IP address.
+        hostname = Socket::IPAddress.valid?(name) ? nil : name
+        OpenSSL::SSL::Socket::Client.new(tcp, ctx, sync_close: false, hostname: hostname)
+      end
+
+      # Returns {ok, current, message}.
+      private def http_request(io : IO, p : PortProbe) : Tuple(Bool, String, String)
+        headers = HTTP::Headers{
+          "Host"       => p.host_header || (p.port.in?(80, 443) ? p.address : "#{p.address}:#{p.port}"),
+          "User-Agent" => "Jane/#{Jane::VERSION}",
+          "Accept"     => "*/*",
+          "Connection" => "close",
+        }
+        HTTP::Request.new("GET", p.request, headers).to_io(io)
+        io.flush
+
+        result = HTTP::Client::Response.from_io(io, ignore_body: false) do |resp|
+          code = resp.status_code
+          current = "#{code} #{resp.status_message}".strip
+          status_ok = if op = p.status_op
+                        Jane.compare(code.to_f64, op, p.status.to_f64)
+                      else
+                        code < 400
+                      end
+          unless status_ok
+            required = p.status_op ? "#{Jane.op_symbol(p.status_op.not_nil!)} #{p.status}" : "< 400"
+            return {false, current, "#{p.protocol_name.upcase} #{p.address}:#{p.port}#{p.request} returned #{current}, required status #{required}"}
+          end
+
+          if pattern = p.content
+            body = read_capped(resp.body_io)
+            matched = pattern.matches?(body)
+            want_match = !p.content_op.try(&.ne?)
+            if matched != want_match
+              return {false, current, "#{p.protocol_name.upcase} #{p.address}:#{p.port}#{p.request} content #{want_match ? "does not match" : "matches"} #{pattern.source.inspect}"}
+            end
+          end
+          {true, current, current}
+        end
+        result || {false, "no response", "#{p.address}:#{p.port} closed the connection without an HTTP response"}
+      end
+
+      private def read_capped(io : IO) : String
+        buf = IO::Memory.new
+        IO.copy(io, buf, MAX_BODY)
+        String.new(buf.to_slice)
+      rescue IO::Error
+        String.new(buf.not_nil!.to_slice)
+      end
+
+      def check_connection(name : String, conn_check : ConnectionCheck, cycle : Int32) : Array(Monitor::Check)
+        p = conn_check.probe || PortProbe.new(conn_check.address, conn_check.port, conn_check.expect)
+        r = probe(p, cycle)
+        [Monitor::Check.new(
           "Network Connection #{name}",
-          status,
-          state,
-          "open",
-          msg,
+          r.ok ? :ok : :alert,
+          r.current,
+          p.http ? "#{p.protocol_name} ok" : "open",
+          r.message,
           description: conn_check.name
-        )
-
-        return results
+        )]
       end # check_connection
 
     end # Connection

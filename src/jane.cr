@@ -1,4 +1,5 @@
 require "option_parser"
+require "./version"
 require "./config"
 require "./info"
 require "./monitor"
@@ -9,14 +10,10 @@ require "./alert"
 require "./utils/generate"
 
 module Jane
-  {% begin %}
-  VERSION = {{ `shards version "#{__DIR__}"`.chomp.stringify.downcase }}
-  {% end %}
-
   class CLI
     def self.run
       mode = :info
-      config_path = "config.toml"
+      config_path = DEFAULT_CONFIG
 
       # Check for positional subcommands before option parsing
       if ARGV[0]? == "unmonitor" || ARGV[0]? == "monitor"
@@ -48,8 +45,9 @@ module Jane
         parser.on("-i", "--info", "Show system information") { mode = :info }
         parser.on("-s", "--status", "Show system status vs config") { mode = :status }
         parser.on("-d", "--daemon", "Run as daemon") { mode = :daemon }
-        parser.on("-g", "--generate", "Generate a config file") { mode = :generate }
-        parser.on("-c FILE", "--config=FILE", "Config file path (default: config.toml)") { |f| config_path = f }
+        parser.on("-g", "--generate", "Print a starter control file") { mode = :generate }
+        parser.on("-t", "--test", "Check the config file syntax") { mode = :test }
+        parser.on("-c FILE", "--config=FILE", "Control file path (default: #{DEFAULT_CONFIG})") { |f| config_path = f }
         parser.on("-h", "--help", "Show help") { mode = :help }
         parser.on("-v", "--version", "Show version") do
           puts "Jane Agent v#{VERSION}"
@@ -68,13 +66,16 @@ module Jane
         Daemon.run(config, config_path)
       when :generate
         Generate.make_config
+      when :test
+        exit test_config(config_path)
       when :help
         puts "Usage: jane [options]"
         puts "  -i, --info              Show system information"
         puts "  -s, --status            Show system status vs config"
         puts "  -d, --daemon            Run as daemon"
-        puts "  -g, --generate          generate a config file"
-        puts "  -c, --config FILE       Config file path (default: config.toml)"
+        puts "  -g, --generate          Print a starter control file"
+        puts "  -t, --test              Check the control file syntax"
+        puts "  -c, --config FILE       Control file path (default: #{DEFAULT_CONFIG})"
         puts "  -h, --help              Show help"
         puts "  -v, --version           Show version"
         puts ""
@@ -82,6 +83,23 @@ module Jane
         puts "  unmonitor <tag>         Unmonitor all checks with the given tag"
         puts "  monitor <tag>           Re-monitor all checks with the given tag"
       end
+    end
+
+    # jane -t: like `monit -t`. Prints warnings, reports OK or the error, and
+    # returns the exit code.
+    def self.test_config(config_path : String) : Int32
+      config, warnings = Config.load(config_path)
+      warnings.each { |w| STDERR.puts "⚠  Warning: #{w}".colorize(:yellow) }
+      checks = config.check
+      count = (checks.cpu ? 1 : 0) + (checks.memory ? 1 : 0) + checks.filesystems.size +
+              checks.network_interfaces.size + checks.network_connections.size +
+              checks.network_bandwidths.size + checks.processes.size + checks.files.size +
+              checks.programs.size
+      puts "Control file syntax OK (#{config_path}: #{count} check(s), #{warnings.size} warning(s))"
+      0
+    rescue ex
+      STDERR.puts "Error: #{ex.message}".colorize(:red)
+      1
     end
 
     def self.parse_tag_arg(tag_arg : String) : Array(String)
@@ -163,6 +181,7 @@ module Jane
       checks.network_bandwidths.each_value { |c| tags.concat(c.tags) }
       checks.processes.each_value { |c| tags.concat(c.tags) }
       checks.files.each_value { |c| tags.concat(c.tags) }
+      checks.programs.each_value { |c| tags.concat(c.tags) }
       tags.uniq
     end
 
@@ -192,7 +211,10 @@ module Jane
         names << "Process #{name}" if proc_check.tags.includes?(tag)
       end
       checks.files.each do |name, file_check|
-        names << "File #{name}" if file_check.tags.includes?(tag)
+        names << "#{file_check.prefix} #{name}" if file_check.tags.includes?(tag)
+      end
+      checks.programs.each do |name, prog|
+        names << "Program #{name}" if prog.tags.includes?(tag)
       end
 
       names

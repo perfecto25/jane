@@ -74,74 +74,69 @@ module Jane
 
     # ---------- CHECKS
     def check_cpu(cpu_check : CPUCheck) : Array(Monitor::Check)
-      # checks if active CPU usage, IO wait and Load Average is above threshold
+      # checks if active CPU usage, IO wait and Load Average is above threshold.
+      # Each threshold level produces its own row.
       results = [] of Monitor::Check
 
-      # CPU Usage
-      unless cpu_check.usage.empty?
+      percent = cpu_check.usage.select { |t| t.unit == :percent }
+      unless percent.empty?
         usage = calculate_cpu_usage
-
-        cpu_check.usage.each do |threshold|
-          case threshold.unit
-          when :percent
-            limit = threshold.to_percent
-            status = usage > limit ? :alert : :ok
-            msg = status == :alert ? "CPU usage exceeds limit" : "Within limits"
-            results << Monitor::Check.new(
-              "CPU Usage",
-              status,
-              "%.2f%%" % usage,
-              "%.2f%%" % limit,
-              msg
-            )
-            break
-          end
+        percent.each do |threshold|
+          limit = threshold.to_percent
+          status = usage > limit ? :alert : :ok
+          results << Monitor.level_check("CPU Usage", threshold, percent,
+          status, "%.2f%%" % usage, "%.2f%%" % limit,
+          status == :alert ? "CPU usage exceeds limit" : "Within limits")
         end
       end
 
-      # IO Wait
-      unless cpu_check.iowait.empty?
+      percent = cpu_check.iowait.select { |t| t.unit == :percent }
+      unless percent.empty?
         iowait = read_iowait
-
-        cpu_check.iowait.each do |threshold|
-          case threshold.unit
-          when :percent
-            limit = threshold.to_percent
-            status = iowait > limit ? :alert : :ok
-            msg = status == :alert ? "IO wait exceeds limit" : "Within limits"
-            results << Monitor::Check.new(
-              "CPU IO Wait",
-              status,
-              "%.2f%%" % iowait,
-              "%.2f%%" % limit,
-              msg
-            )
-            break
-          end
+        percent.each do |threshold|
+          limit = threshold.to_percent
+          status = iowait > limit ? :alert : :ok
+          results << Monitor.level_check("CPU IO Wait", threshold, percent,
+          status, "%.2f%%" % iowait, "%.2f%%" % limit,
+          status == :alert ? "IO wait exceeds limit" : "Within limits")
         end
       end
 
-      # Load Average
-      if limits = cpu_check.loadavg
+      unless cpu_check.loadavg.all?(&.empty?) && cpu_check.loadavg_per_core.all?(&.empty?)
         loadavg = read_loadavg
-        ["1min", "5min", "15min"].each_with_index do |period, idx|
-          if idx < limits.size
-            current = loadavg[idx]
-            limit = limits[idx]
-            status = current > limit ? :alert : :ok
-            msg = status == :alert ? "Load average exceeds limit" : "Within limits"
-            results << Monitor::Check.new(
-              "Load Avg (#{period})",
-              status,
-              "%.2f" % current,
-              "%.2f" % limit,
-              msg
-            )
-          end
+        cores = online_cpus
+        LOADAVG_PERIODS.each_with_index do |period, idx|
+          results.concat loadavg_results("Load Avg (#{period})", loadavg[idx], cpu_check.loadavg[idx]?, nil)
+          results.concat loadavg_results("Load Avg (#{period}) per core", loadavg[idx] / cores, cpu_check.loadavg_per_core[idx]?, cores)
         end
       end
       return results
     end # check_cpu
+
+    LOADAVG_PERIODS = ["1min", "5min", "15min"]
+
+    private def loadavg_results(name : String, current : Float64, levels : Array(Threshold)?,
+                                cores : Int32?) : Array(Monitor::Check)
+      return [] of Monitor::Check unless levels
+      levels.map do |threshold|
+        status = current > threshold.value ? :alert : :ok
+        message = if status == :ok
+                    "Within limits"
+                  elsif cores
+                    "Load average per core exceeds limit (#{cores} CPUs)"
+                  else
+                    "Load average exceeds limit"
+                  end
+        Monitor.level_check(name, threshold, levels,
+          status, "%.2f" % current, "%.2f" % threshold.value,
+          message)
+      end
+    end
+
+    # CPUs the scheduler can use (what the load average is spread over).
+    def online_cpus : Int32
+      Math.max(System.cpu_count.to_i32, 1)
+    end
 
 
 

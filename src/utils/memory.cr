@@ -48,41 +48,49 @@ module Jane
     #----------  CHECKS
 
     def check_memory(mem_check : MemoryCheck) : Array(Monitor::Check)
-      # checks if memory usage is above threshold
+      # checks if memory usage is above threshold; one row per threshold level
       results = [] of Monitor::Check
       mem_info = read_memory_info
+      used_bytes = mem_info[:used].as(Int64)
+      usage_pct = mem_info[:usage_pct].as(Float64)
+      levels = mem_check.usage.select { |t| t.unit == :bytes || t.unit == :percent }
 
-      mem_check.usage.each do |threshold|
-        used_bytes = mem_info[:used].as(Int64)
-        total_bytes = mem_info[:total].as(Int64)
-        usage_pct = mem_info[:usage_pct].as(Float64)
-
-        case threshold.unit
-        when :bytes
-          limit_bytes = threshold.to_bytes
-          status = used_bytes > limit_bytes ? :alert : :ok
-          msg = status == :alert ? "Memory usage exceeds limit" : "Within limits"
-          results << Monitor::Check.new(
-            "Memory Usage",
-            status,
-            Info.format_bytes(used_bytes),
-            threshold.format_value,
-            msg
-          )
-          break
-        when :percent
-          limit_pct = threshold.to_percent
-          status = usage_pct > limit_pct ? :alert : :ok
-          msg = status == :alert ? "Memory usage exceeds limit" : "Within limits"
-          results << Monitor::Check.new(
-            "Memory Usage",
-            status,
-            "%.2f%%" % usage_pct,
-            "%.2f%%" % limit_pct,
-            msg
-          )
-          break
+      levels.each do |threshold|
+        if threshold.unit == :bytes
+          status = used_bytes > threshold.to_bytes ? :alert : :ok
+          current = Info.format_bytes(used_bytes)
+          limit = threshold.format_value
+        else
+          status = usage_pct > threshold.to_percent ? :alert : :ok
+          current = "%.2f%%" % usage_pct
+          limit = "%.2f%%" % threshold.to_percent
         end
+        results << Monitor.level_check("Memory Usage", threshold, levels,
+          status, current, limit,
+          status == :alert ? "Memory usage exceeds limit" : "Within limits")
+      end
+
+      swap_levels = mem_check.swap.select { |t| t.unit == :bytes || t.unit == :percent }
+      swap_total = mem_info[:swap_total].as(Int64)
+      swap_used = mem_info[:swap_used].as(Int64)
+      swap_pct = mem_info[:swap_usage_pct].as(Float64)
+      swap_levels.each do |threshold|
+        if swap_total == 0
+          results << Monitor.level_check("Swap Usage", threshold, swap_levels, :ok, "n/a",
+            threshold.unit == :bytes ? threshold.format_value : "%.2f%%" % threshold.to_percent, "No swap configured")
+          next
+        end
+        if threshold.unit == :bytes
+          status = swap_used > threshold.to_bytes ? :alert : :ok
+          current = Info.format_bytes(swap_used)
+          limit = threshold.format_value
+        else
+          status = swap_pct > threshold.to_percent ? :alert : :ok
+          current = "%.2f%%" % swap_pct
+          limit = "%.2f%%" % threshold.to_percent
+        end
+        results << Monitor.level_check("Swap Usage", threshold, swap_levels, status, current, limit,
+          status == :alert ? "Swap usage exceeds limit (#{Info.format_bytes(swap_used)} of #{Info.format_bytes(swap_total)})" : "Within limits")
       end
       return results
     end # check_memory

@@ -1,18 +1,19 @@
 name: jane
-version: 0.1.0
+version: 0.1.1
+
+authors:
+  - mreider <mike.reider@gmail.com>
+
+targets:
+  jane:
+    main: src/jane.cr
 
 dependencies:
   tallboy:
     github: epoch/tallboy
   msgpack:
     github: crystal-community/msgpack-crystal
-  toml:
-    github: crystal-community/toml.cr
 
-crystal: 1.11.0
+crystal: ">= 1.19.1"
 
 license: MIT
-
-targets:
-  jane:
-    main: src/jane.cr
