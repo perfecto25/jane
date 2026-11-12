@@ -39,6 +39,10 @@ CONF
 # check the syntax
 ./bin/jane -t -c jane.conf
 
+# lint the syntax and layout; --fix rewrites the file to fix layout problems
+./bin/jane -l jane.conf
+./bin/jane -l --fix jane.conf
+
 # evaluate all checks once and print a table
 ./bin/jane -s -c jane.conf
 

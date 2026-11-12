@@ -76,7 +76,7 @@ module Jane
             "config" => config_json,
           }
 
-          data = serialize_results(results)
+          data = serialize_results(results, logger)
           #logger.info(data.to_s)
           send_to_server(hq.host.not_nil!, hq.port.not_nil!, data, cycle, logger)
           logger.info("Sent #{filtered_checks.size} checks to server")
@@ -108,10 +108,11 @@ module Jane
     end
 
 #    private_def to_msgpack(results)
-    private def serialize_results(results : Hash(String, Array(Jane::Monitor::Check) | Jane::Info::Metrics | Array(String) | JSON::Any))
+    private def serialize_results(results : Hash(String, Array(Jane::Monitor::Check) | Jane::Info::Metrics | Array(String) | JSON::Any), logger : Logger)
       #results : Array(SystemMonitor::Check)) : Bytes
       #
       data = results.to_json
+      logger.debug(data.to_s)
 
       # data = results.map do |r|
       #   {
@@ -130,6 +131,7 @@ module Jane
     private def send_to_server(host : String, port : Int32, data : Bytes, cycle : Int32, logger : Logger)
       #logger.warn(data.to_s)
       logger.debug("sending to #{host}, #{port}")
+ 
       socket = TCPSocket.new(host.not_nil!, port.not_nil!, connect_timeout: cycle.seconds).not_nil!
 
       write_data = data.not_nil!

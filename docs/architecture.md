@@ -13,7 +13,7 @@ Jane is a single binary with three main jobs:
 
 | File | Responsibility |
 |---|---|
-| `src/jane.cr` | Entry point. Parses `ARGV`, dispatches to a mode, and handles the `monitor`/`unmonitor` subcommands. Any uncaught exception is printed as `Error running Jane: <message>`. |
+| `src/jane.cr` | Entry point. Parses `ARGV` (pulling out `--fix` first), dispatches to a mode, and handles the `monitor`/`unmonitor` subcommands. Any uncaught exception is printed as `Error running Jane: <message>`. |
 | `src/config.cr` | The typed config objects (`Config`, `CheckConfig`, `CPUCheck`, `Threshold`, rules, …) and `Config.load`. |
 | `src/conf/` | The control file parser: `lexer.cr` (tokens), `parser.cr` (syntax tree, includes) and `builder.cr` (syntax tree → config objects, warnings). |
 | `src/rules/` | The rule engine (`engine.cr`: cycle windows, actions), `scheduler.cr` (`every N cycles`), `policy.cr` and `shell.cr` (commands with a timeout). |
@@ -25,6 +25,7 @@ Jane is a single binary with three main jobs:
 | `src/utils/process.cr` | Checks whether a process is running, by `/proc/*/cmdline` match or by pidfile, and its resource tests (via `proctable.cr`). |
 | `src/utils/file.cr` | File, directory and fifo checks: existence, owner, group, mode, timestamps, size, checksum; content via `content.cr`. |
 | `src/utils/generate.cr` | Prints a starter control file for the host (`jane -g`). |
+| `src/lint.cr` | The control file linter and fixer (`jane -l`, `jane -l --fix`): style rules layered on top of the parser's syntax check. |
 | `src/info.cr` | Host info table (`jane -i`) and the `Metrics` struct sent to HQ. |
 | `src/daemon.cr` | The daemon loops (HQ and standalone alert) and serialization for HQ. |
 | `src/alert.cr` | `Alerter`, which sends an email on ok → alert transitions (and when a multi-level check climbs a level) using a minimal built-in SMTP client. |

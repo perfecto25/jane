@@ -4,6 +4,7 @@ Jane is configured with a Monit-style control file (default `jane.conf`, or `-c 
 
 ```sh
 jane -t -c /etc/jane/jane.conf   # check the syntax
+jane -l /etc/jane/jane.conf      # lint syntax and layout (add --fix to repair the layout)
 jane -s -c /etc/jane/jane.conf   # run the checks once
 ```
 

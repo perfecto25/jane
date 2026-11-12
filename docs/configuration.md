@@ -1,6 +1,6 @@
 # Configuration
 
-Jane is configured with one Monit-style control file. The default is `jane.conf` in the current directory; use `-c FILE` for another path. Run `jane -g > jane.conf` to get a starter file for the host, and `jane -t` to check it.
+Jane is configured with one Monit-style control file. The default is `jane.conf` in the current directory; use `-c FILE` for another path. Run `jane -g > jane.conf` to get a starter file for the host, `jane -t` to check it, and `jane -l` to lint its layout (`jane -l --fix` repairs it).
 
 This page covers the global settings, tags and include files. [Control file](control-file.md) covers the syntax and rules, and [Checks](checks.md) has an example of every check type.
 

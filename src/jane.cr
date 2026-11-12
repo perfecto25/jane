@@ -6,6 +6,7 @@ require "./monitor"
 require "./daemon"
 require "./logger"
 require "./state"
+require "./lint"
 require "./alert"
 require "./utils/generate"
 
@@ -14,6 +15,9 @@ module Jane
     def self.run
       mode = :info
       config_path = DEFAULT_CONFIG
+      lint_path = ""
+      # `--fix` is a modifier for -l; pull it out first so `jane -l --fix FILE` works
+      fix = !ARGV.delete("--fix").nil?
 
       # Check for positional subcommands before option parsing
       if ARGV[0]? == "unmonitor" || ARGV[0]? == "monitor"
@@ -47,6 +51,7 @@ module Jane
         parser.on("-d", "--daemon", "Run as daemon") { mode = :daemon }
         parser.on("-g", "--generate", "Print a starter control file") { mode = :generate }
         parser.on("-t", "--test", "Check the config file syntax") { mode = :test }
+        parser.on("-l FILE", "--lint=FILE", "Lint a control file's syntax and style") { |f| mode = :lint; lint_path = f }
         parser.on("-c FILE", "--config=FILE", "Control file path (default: #{DEFAULT_CONFIG})") { |f| config_path = f }
         parser.on("-h", "--help", "Show help") { mode = :help }
         parser.on("-v", "--version", "Show version") do
@@ -66,6 +71,8 @@ module Jane
         Daemon.run(config, config_path)
       when :generate
         Generate.make_config
+      when :lint
+        exit Lint.run(lint_path, fix)
       when :test
         exit test_config(config_path)
       when :help
@@ -75,13 +82,15 @@ module Jane
         puts "  -d, --daemon            Run as daemon"
         puts "  -g, --generate          Print a starter control file"
         puts "  -t, --test              Check the control file syntax"
+        puts "  -l, --lint FILE         Lint a control file's syntax and style"
+        puts "      --fix               With -l, rewrite the file to fix style issues"
         puts "  -c, --config FILE       Control file path (default: #{DEFAULT_CONFIG})"
         puts "  -h, --help              Show help"
         puts "  -v, --version           Show version"
         puts ""
         puts "Subcommands:"
-        puts "  unmonitor <tag>         Unmonitor all checks with the given tag"
-        puts "  monitor <tag>           Re-monitor all checks with the given tag"
+        puts "  unmonitor <tag>         Unmonitor all checks with the given tag (group)"
+        puts "  monitor <tag>           Re-monitor all checks with the given tag (group)"
       end
     end
 
